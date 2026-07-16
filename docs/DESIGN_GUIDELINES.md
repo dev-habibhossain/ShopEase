@@ -6,8 +6,8 @@
 | **Stack** | Vue 3 + Inertia.js + Tailwind CSS |
 | **Goal** | Professional, attractive, fully responsive storefront |
 | **Market** | Bangladesh (mobile-first) |
-| **Version** | 1.0 |
-| **Date** | 2026-06-14 |
+| **Version** | 1.1 (Violet/Gold theme) |
+| **Date** | 2026-07-17 |
 
 ---
 
@@ -24,18 +24,18 @@
 
 ## 2. Color System
 
-A clean, modern palette: a confident primary, a warm accent for CTAs/sales, and neutral grays for structure.
+A premium palette: a confident violet primary, a warm gold accent for CTAs/sales, and neutral grays for structure.
 
 ### 2.1 Brand Colors
 | Token | Hex | Usage |
 |-------|-----|-------|
-| `primary-600` | `#2563EB` | Primary buttons, links, active states |
-| `primary-700` | `#1D4ED8` | Hover on primary |
-| `primary-50` | `#EFF6FF` | Soft primary backgrounds, badges |
-| `accent-500` | `#F59E0B` | Highlights, sale tags, "Best Seller" |
-| `accent-600` | `#D97706` | Accent hover |
+| `primary-600` | `#7C3AED` | Primary buttons, links, active states |
+| `primary-700` | `#6D28D9` | Hover on primary |
+| `primary-50` | `#F5F3FF` | Soft primary backgrounds, badges |
+| `accent-500` | `#EAB308` | Highlights, sale tags, "Best Seller" |
+| `accent-600` | `#CA8A04` | Accent hover |
 
-> You may swap the primary to a brand color of choice (e.g., emerald `#059669` or rose `#E11D48`). Keep one primary + one accent only.
+> Primary is set to violet (`#7C3AED`) and accent to gold (`#EAB308`) for this theme. Keep one primary + one accent only.
 
 ### 2.2 Neutrals
 | Token | Hex | Usage |
@@ -61,8 +61,8 @@ A clean, modern palette: a confident primary, a warm accent for CTAs/sales, and 
 theme: {
   extend: {
     colors: {
-      primary: { 50:'#EFF6FF', 600:'#2563EB', 700:'#1D4ED8' },
-      accent:  { 500:'#F59E0B', 600:'#D97706' },
+      primary: { 50:'#F5F3FF', 600:'#7C3AED', 700:'#6D28D9' },
+      accent:  { 500:'#EAB308', 600:'#CA8A04' },
     },
   },
 }
@@ -244,7 +244,7 @@ const taka = (n) => '৳ ' + Number(n).toLocaleString('en-BD');
 
 ## 10. Accessibility (a11y)
 
-- Color contrast: meet **WCAG AA** (4.5:1 for body text).
+- Color contrast: meet **WCAG AA** (4.5:1 for body text). Note: `accent-500` (`#EAB308`) on white does not meet AA for text — use it for backgrounds/badges with dark text (`gray-900`), or reserve it for large/bold elements, not small body copy.
 - All interactive elements keyboard-focusable with visible focus ring.
 - Carousel controls and cart actions need `aria-label`s.
 - Images have `alt` text; decorative images use `alt=""`.
