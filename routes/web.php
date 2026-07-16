@@ -10,6 +10,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 require __DIR__.'/settings.php';
 
-Route::get('/hello-world', function(){
+Route::get('/hello-world', function () {
     return 'hello world';
 });
