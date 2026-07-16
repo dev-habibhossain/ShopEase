@@ -22,6 +22,8 @@ return new class extends Migration
             $table->string('area', 150);
             $table->text('address');
             $table->text('notes')->nullable();
+            $table->foreignId('coupon_id')->nullable()->constrained('coupons')->nullOnDelete();
+            $table->decimal('discount_amount', 10, 2)->default(0);
             $table->decimal('subtotal', 12, 2);
             $table->decimal('delivery_charge', 10, 2)->default(0);
             $table->decimal('total', 12, 2);
