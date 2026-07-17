@@ -7,6 +7,7 @@ import { useToast } from '@/composables/useToast';
 
 interface Product {
     name: string;
+    slug: string;
     price: number;
     oldPrice?: number;
     img: string;
@@ -18,17 +19,17 @@ interface Product {
 
 // Statically defined products from design
 const bestSelling: Product[] = [
-    { name: 'Wireless Noise-Cancelling Headphones', price: 6499, oldPrice: 8999, img: 'photo-1505740420928-5e560c06d30e', rating: 4.8, reviews: 214, inStock: true, tag: 'Best Seller' },
-    { name: 'Smart Fitness Watch Series 6', price: 4299, img: 'photo-1523275335684-37898b6baf30', rating: 4.6, reviews: 167, inStock: true, tag: 'Best Seller' },
-    { name: 'Classic Leather Sneakers', price: 2999, oldPrice: 3999, img: 'photo-1542291026-7eec264c27ff', rating: 4.7, reviews: 132, inStock: true, tag: 'Best Seller' },
-    { name: 'Premium Sunglasses UV400', price: 1599, img: 'photo-1572635196237-14b3f281503f', rating: 4.5, reviews: 98, inStock: false, tag: 'Best Seller' },
+    { name: 'Wireless Noise-Cancelling Headphones', slug: 'wireless-noise-cancelling-headphones', price: 6499, oldPrice: 8999, img: 'photo-1505740420928-5e560c06d30e', rating: 4.8, reviews: 214, inStock: true, tag: 'Best Seller' },
+    { name: 'Smart Fitness Watch Series 6', slug: 'smart-fitness-watch-series-6', price: 4299, img: 'photo-1523275335684-37898b6baf30', rating: 4.6, reviews: 167, inStock: true, tag: 'Best Seller' },
+    { name: 'Classic Leather Sneakers', slug: 'classic-leather-sneakers', price: 2999, oldPrice: 3999, img: 'photo-1542291026-7eec264c27ff', rating: 4.7, reviews: 132, inStock: true, tag: 'Best Seller' },
+    { name: 'Premium Sunglasses UV400', slug: 'premium-sunglasses-uv400', price: 1599, img: 'photo-1572635196237-14b3f281503f', rating: 4.5, reviews: 98, inStock: false, tag: 'Best Seller' },
 ];
 
 const newCollection: Product[] = [
-    { name: 'Minimalist Backpack 20L', price: 2499, img: 'photo-1553062407-98eeb64c6a62', rating: 4.4, reviews: 41, inStock: true, tag: 'New' },
-    { name: 'Ceramic Pour-Over Coffee Set', price: 1899, img: 'photo-1495774856032-8b90bbb32b32', rating: 4.9, reviews: 23, inStock: true, tag: 'New' },
-    { name: 'Mechanical Keyboard RGB', price: 5499, oldPrice: 6299, img: 'photo-1587829741301-dc798b83add3', rating: 4.7, reviews: 36, inStock: true, tag: 'New' },
-    { name: 'Cotton Oversized T-Shirt', price: 899, img: 'photo-1521572163474-6864f9cf17ab', rating: 4.3, reviews: 18, inStock: false, tag: 'New' },
+    { name: 'Minimalist Backpack 20L', slug: 'minimalist-backpack-20l', price: 2499, img: 'photo-1553062407-98eeb64c6a62', rating: 4.4, reviews: 41, inStock: true, tag: 'New' },
+    { name: 'Ceramic Pour-Over Coffee Set', slug: 'ceramic-pour-over-coffee-set', price: 1899, img: 'photo-1495774856032-8b90bbb32b32', rating: 4.9, reviews: 23, inStock: true, tag: 'New' },
+    { name: 'Mechanical Keyboard RGB', slug: 'mechanical-keyboard-rgb', price: 5499, oldPrice: 6299, img: 'photo-1587829741301-dc798b83add3', rating: 4.7, reviews: 36, inStock: true, tag: 'New' },
+    { name: 'Cotton Oversized T-Shirt', slug: 'cotton-oversized-t-shirt', price: 899, img: 'photo-1521572163474-6864f9cf17ab', rating: 4.3, reviews: 18, inStock: false, tag: 'New' },
 ];
 
 // Composables
@@ -347,7 +348,7 @@ const formatPrice = (price: number) => {
                     class="group flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition duration-300 ease-out hover:-translate-y-1 hover:border-primary-600 hover:shadow-xl"
                 >
                     <div class="relative aspect-square overflow-hidden bg-gray-100">
-                        <Link href="/product-details" :aria-label="`View ${p.name}`" class="block h-full w-full">
+                        <Link :href="`/product-details/${p.slug}`" :aria-label="`View ${p.name}`" class="block h-full w-full">
                             <img
                                 :src="`https://images.unsplash.com/${p.img}?auto=format&fit=crop&w=600&q=70`"
                                 :alt="p.name"
@@ -376,7 +377,7 @@ const formatPrice = (price: number) => {
                         </button>
                     </div>
                     <div class="flex flex-1 flex-col p-3 md:p-4">
-                        <Link href="/product-details" class="block">
+                        <Link :href="`/product-details/${p.slug}`" class="block">
                             <h3 class="line-clamp-2 text-sm font-medium text-gray-900 transition-colors duration-200 group-hover:text-primary-600 md:text-base">{{ p.name }}</h3>
                         </Link>
                         <div class="mt-1.5 flex items-center gap-1">
@@ -468,7 +469,7 @@ const formatPrice = (price: number) => {
                     class="group flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition duration-300 ease-out hover:-translate-y-1 hover:border-primary-600 hover:shadow-xl"
                 >
                     <div class="relative aspect-square overflow-hidden bg-gray-100">
-                        <Link href="/product-details" :aria-label="`View ${p.name}`" class="block h-full w-full">
+                        <Link :href="`/product-details/${p.slug}`" :aria-label="`View ${p.name}`" class="block h-full w-full">
                             <img
                                 :src="`https://images.unsplash.com/${p.img}?auto=format&fit=crop&w=600&q=70`"
                                 :alt="p.name"
@@ -497,7 +498,7 @@ const formatPrice = (price: number) => {
                         </button>
                     </div>
                     <div class="flex flex-1 flex-col p-3 md:p-4">
-                        <Link href="/product-details" class="block">
+                        <Link :href="`/product-details/${p.slug}`" class="block">
                             <h3 class="line-clamp-2 text-sm font-medium text-gray-900 transition-colors duration-200 group-hover:text-primary-600 md:text-base">{{ p.name }}</h3>
                         </Link>
                         <div class="mt-1.5 flex items-center gap-1">

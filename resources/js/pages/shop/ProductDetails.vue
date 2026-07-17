@@ -5,8 +5,13 @@ import { useCart } from '@/composables/useCart';
 import { useWishlist } from '@/composables/useWishlist';
 import { useToast } from '@/composables/useToast';
 
+defineProps<{
+    slug: string;
+}>();
+
 interface Product {
     name: string;
+    slug: string;
     price: number;
     oldPrice?: number;
     img: string;
@@ -43,10 +48,10 @@ const product = {
 };
 
 const relatedProducts: Product[] = [
-    { name: 'Smart Fitness Watch Series 6', price: 4299, img: 'photo-1523275335684-37898b6baf30', rating: 4.6, reviews: 167, inStock: true, tag: 'Best Seller' },
-    { name: 'Portable Bluetooth Speaker', price: 2199, oldPrice: 2799, img: 'photo-1608043152269-423dbba4e7e1', rating: 4.5, reviews: 89, inStock: true },
-    { name: 'Wireless Earbuds Pro', price: 3499, img: 'photo-1590658268037-6bf12165a8df', rating: 4.7, reviews: 142, inStock: false },
-    { name: 'Premium Sunglasses UV400', price: 1599, img: 'photo-1572635196237-14b3f281503f', rating: 4.5, reviews: 98, inStock: true, tag: 'New' }
+    { name: 'Smart Fitness Watch Series 6', slug: 'smart-fitness-watch-series-6', price: 4299, img: 'photo-1523275335684-37898b6baf30', rating: 4.6, reviews: 167, inStock: true, tag: 'Best Seller' },
+    { name: 'Portable Bluetooth Speaker', slug: 'portable-bluetooth-speaker', price: 2199, oldPrice: 2799, img: 'photo-1608043152269-423dbba4e7e1', rating: 4.5, reviews: 89, inStock: true },
+    { name: 'Wireless Earbuds Pro', slug: 'wireless-earbuds-pro', price: 3499, img: 'photo-1590658268037-6bf12165a8df', rating: 4.7, reviews: 142, inStock: false },
+    { name: 'Premium Sunglasses UV400', slug: 'premium-sunglasses-uv400', price: 1599, img: 'photo-1572635196237-14b3f281503f', rating: 4.5, reviews: 98, inStock: true, tag: 'New' }
 ];
 
 const reviews = ref<Review[]>([
@@ -588,7 +593,7 @@ const formatPrice = (price: number) => {
                     class="group flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition duration-300 ease-out hover:-translate-y-1 hover:border-primary-600 hover:shadow-xl"
                 >
                     <div class="relative aspect-square overflow-hidden bg-gray-100">
-                        <Link href="/product-details" :aria-label="`View ${p.name}`" class="block h-full w-full">
+                        <Link :href="`/product-details/${p.slug}`" :aria-label="`View ${p.name}`" class="block h-full w-full">
                             <img
                                 :src="`https://images.unsplash.com/${p.img}?auto=format&fit=crop&w=600&q=70`"
                                 :alt="p.name"
@@ -612,7 +617,7 @@ const formatPrice = (price: number) => {
                             :class="[
                                 'wish-btn absolute right-2 top-2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-sm transition duration-200 hover:bg-white hover:scale-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary-600 sm:opacity-0 sm:translate-y-1 sm:group-hover:opacity-100 sm:group-hover:translate-y-0',
                                 hasWish(p.name) ? 'text-red-600' : 'text-gray-700 hover:text-red-600'
-                            ]"
+                             ]"
                         >
                             <svg class="h-5 w-5" :fill="hasWish(p.name) ? 'currentColor' : 'none'" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -620,7 +625,7 @@ const formatPrice = (price: number) => {
                         </button>
                     </div>
                     <div class="flex flex-1 flex-col p-3 md:p-4">
-                        <Link href="/product-details" class="block">
+                        <Link :href="`/product-details/${p.slug}`" class="block">
                             <h3 class="line-clamp-2 text-sm font-medium text-gray-900 transition-colors duration-200 group-hover:text-primary-600 md:text-base">{{ p.name }}</h3>
                         </Link>
                         <div class="mt-1.5 flex items-center gap-1">
