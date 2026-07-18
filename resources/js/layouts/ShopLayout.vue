@@ -54,16 +54,16 @@ const currentYear = new Date().getFullYear();
         <header
             class="sticky top-0 z-50 border-b border-gray-200 bg-white/95 backdrop-blur"
         >
-            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <div class="flex h-16 items-center justify-between gap-4">
+            <div class="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
+                <div class="flex h-16 items-center justify-between gap-2 sm:gap-4">
                     <!-- Left: mobile menu button + logo -->
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-1 sm:gap-2">
                         <button
                             @click="openMobileMenu"
                             type="button"
                             aria-label="Open menu"
                             :aria-expanded="isMobileMenuOpen"
-                            class="-ml-1 inline-flex h-11 w-11 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 focus:ring-2 focus:ring-primary-600 focus:outline-none lg:hidden"
+                            class="-ml-1 inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 focus:ring-2 focus:ring-primary-600 focus:outline-none lg:hidden"
                         >
                             <svg
                                 class="h-6 w-6"
@@ -82,11 +82,11 @@ const currentYear = new Date().getFullYear();
 
                         <Link
                             href="/"
-                            class="flex items-center gap-2"
+                            class="flex items-center gap-1.5 sm:gap-2"
                             aria-label="ShopEase home"
                         >
                             <span
-                                class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary-600 text-white"
+                                class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-600 text-white"
                             >
                                 <svg
                                     class="h-5 w-5"
@@ -103,7 +103,7 @@ const currentYear = new Date().getFullYear();
                                 </svg>
                             </span>
                             <span
-                                class="font-display text-xl font-extrabold tracking-tight text-gray-900"
+                                class="font-display text-base sm:text-xl font-extrabold tracking-tight text-gray-900 shrink-0"
                             >
                                 Shop<span class="text-primary-600">Ease</span>
                             </span>
@@ -170,11 +170,11 @@ const currentYear = new Date().getFullYear();
                     </div>
 
                     <!-- Right: icons -->
-                    <div class="flex items-center gap-1">
+                    <div class="flex items-center gap-0.5 sm:gap-1">
                         <button
                             type="button"
                             aria-label="Search"
-                            class="inline-flex h-11 w-11 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 focus:ring-2 focus:ring-primary-600 focus:outline-none md:hidden"
+                            class="inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 focus:ring-2 focus:ring-primary-600 focus:outline-none md:hidden"
                         >
                             <svg
                                 class="h-6 w-6"
@@ -193,7 +193,7 @@ const currentYear = new Date().getFullYear();
                         <Link
                             href="/login"
                             aria-label="Account"
-                            class="hidden h-11 w-11 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 focus:ring-2 focus:ring-primary-600 focus:outline-none sm:inline-flex"
+                            class="hidden h-10 w-10 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 focus:ring-2 focus:ring-primary-600 focus:outline-none sm:inline-flex"
                         >
                             <svg
                                 class="h-6 w-6"
@@ -212,7 +212,7 @@ const currentYear = new Date().getFullYear();
                         <Link
                             href="/wishlist"
                             :aria-label="`Wishlist, ${wishCount} items`"
-                            class="relative inline-flex h-11 w-11 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 focus:ring-2 focus:ring-primary-600 focus:outline-none"
+                            class="relative inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 focus:ring-2 focus:ring-primary-600 focus:outline-none"
                         >
                             <svg
                                 class="h-6 w-6"
@@ -237,7 +237,7 @@ const currentYear = new Date().getFullYear();
                             @click="openCart"
                             type="button"
                             :aria-label="`Cart, ${cartQty} items`"
-                            class="relative inline-flex h-11 w-11 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 focus:ring-2 focus:ring-primary-600 focus:outline-none"
+                            class="relative inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 focus:ring-2 focus:ring-primary-600 focus:outline-none"
                         >
                             <svg
                                 class="h-6 w-6"
@@ -624,10 +624,10 @@ const currentYear = new Date().getFullYear();
                 <div
                     class="mt-10 flex flex-col items-center gap-4 border-t border-white/10 pt-6 sm:flex-row sm:justify-between"
                 >
-                    <p class="text-xs text-gray-400">
+                    <p class="text-xs text-gray-400 text-center sm:text-left">
                         © {{ currentYear }} ShopEase. All rights reserved.
                     </p>
-                    <div class="flex items-center gap-3">
+                    <div class="flex flex-wrap items-center justify-center gap-3">
                         <span class="text-xs text-gray-400">We accept</span>
                         <span
                             class="rounded bg-white/10 px-2 py-1 text-xs font-medium text-gray-200"
