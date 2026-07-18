@@ -1,24 +1,30 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { useCart } from '@/composables/useCart';
 import { useWishlist } from '@/composables/useWishlist';
 import { useToast } from '@/composables/useToast';
 
-defineProps<{
-    slug: string;
-}>();
+interface ProductImage {
+    path: string;
+    alt: string;
+    isPrimary: boolean;
+}
 
-interface Product {
+interface ProductProp {
+    id: number;
     name: string;
     slug: string;
+    shortDescription: string | null;
+    description: string | null;
     price: number;
-    oldPrice?: number;
-    img: string;
+    oldPrice?: number | null;
     rating: number;
-    reviews: number;
+    reviewCount: number;
     inStock: boolean;
-    tag?: string;
+    category: string;
+    categorySlug: string;
+    images: ProductImage[];
 }
 
 interface Review {
@@ -29,97 +35,30 @@ interface Review {
     text: string;
 }
 
-// Statically defined product info
-const product = {
-    name: 'Wireless Noise-Cancelling Headphones',
-    price: 6499,
-    oldPrice: 8999,
-    rating: 4.8,
-    reviews: 214,
-    inStock: true,
-    category: 'Electronics',
-    images: [
-        'photo-1505740420928-5e560c06d30e',
-        'photo-1484704849700-f032a568e944',
-        'photo-1583394838336-acd977736f90',
-        'photo-1546435770-a3e426bf472b',
-        'photo-1577174881658-0f30ed549adc',
-    ],
-};
+interface Breakdown {
+    s: number;
+    p: number;
+}
 
-const relatedProducts: Product[] = [
-    {
-        name: 'Smart Fitness Watch Series 6',
-        slug: 'smart-fitness-watch-series-6',
-        price: 4299,
-        img: 'photo-1523275335684-37898b6baf30',
-        rating: 4.6,
-        reviews: 167,
-        inStock: true,
-        tag: 'Best Seller',
-    },
-    {
-        name: 'Portable Bluetooth Speaker',
-        slug: 'portable-bluetooth-speaker',
-        price: 2199,
-        oldPrice: 2799,
-        img: 'photo-1608043152269-423dbba4e7e1',
-        rating: 4.5,
-        reviews: 89,
-        inStock: true,
-    },
-    {
-        name: 'Wireless Earbuds Pro',
-        slug: 'wireless-earbuds-pro',
-        price: 3499,
-        img: 'photo-1590658268037-6bf12165a8df',
-        rating: 4.7,
-        reviews: 142,
-        inStock: false,
-    },
-    {
-        name: 'Premium Sunglasses UV400',
-        slug: 'premium-sunglasses-uv400',
-        price: 1599,
-        img: 'photo-1572635196237-14b3f281503f',
-        rating: 4.5,
-        reviews: 98,
-        inStock: true,
-        tag: 'New',
-    },
-];
+interface RelatedProduct {
+    id: number;
+    name: string;
+    slug: string;
+    price: number;
+    oldPrice?: number | null;
+    img: string;
+    rating: number;
+    reviews: number;
+    inStock: boolean;
+    tag?: string | null;
+}
 
-const reviews = ref<Review[]>([
-    {
-        name: 'Rina A.',
-        rating: 5,
-        date: '12 Jun 2026',
-        verified: true,
-        text: 'Sound quality is amazing and the noise cancellation actually works on the bus. Battery lasts me almost a week. Highly recommended!',
-    },
-    {
-        name: 'Karim H.',
-        rating: 5,
-        date: '5 Jun 2026',
-        verified: true,
-        text: 'Delivered fast inside Dhaka, paid cash on delivery. Build quality feels premium for the price.',
-    },
-    {
-        name: 'Sadia R.',
-        rating: 4,
-        date: '28 May 2026',
-        verified: false,
-        text: 'Very comfortable for long use. Only wish the case was a bit smaller, but overall great value.',
-    },
-]);
-
-const breakdown = [
-    { s: 5, p: 78 },
-    { s: 4, p: 15 },
-    { s: 3, p: 5 },
-    { s: 2, p: 1 },
-    { s: 1, p: 1 },
-];
+const props = defineProps<{
+    product: ProductProp;
+    reviews: Review[];
+    breakdown: Breakdown[];
+    relatedProducts: RelatedProduct[];
+}>();
 
 // Composables
 const { addToCart, buyNow } = useCart();
@@ -131,6 +70,28 @@ const selectedImageIndex = ref(0);
 const qty = ref(1);
 const activeTab = ref<'desc' | 'reviews'>('desc');
 
+// Reviews are seeded from props; client-side submissions prepend to this list
+const localReviews = ref<Review[]>([...props.reviews]);
+
+// Computed discount percentage
+const discountPercent = computed(() => {
+    if (!props.product.oldPrice || props.product.oldPrice <= props.product.price) {
+        return null;
+    }
+    return Math.round((1 - props.product.price / props.product.oldPrice) * 100);
+});
+
+// Image URL helper
+const imageUrl = (path: string, size: number = 600) => {
+    if (!path) {
+        return `https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=${size}&q=75`;
+    }
+    if (path.startsWith('http')) {
+        return path;
+    }
+    return `https://images.unsplash.com/${path}?auto=format&fit=crop&w=${size}&q=75`;
+};
+
 // Sticky Mobile/Tablet Add to Cart Bar visibility observer
 const showStickyBar = ref(false);
 const mainActionsRef = ref<HTMLElement | null>(null);
@@ -141,7 +102,6 @@ onMounted(() => {
     if (mainActionsRef.value) {
         observer = new IntersectionObserver(
             ([entry]) => {
-                // Show sticky bar only when main actions are scrolled past the top of the viewport
                 showStickyBar.value =
                     !entry.isIntersecting && entry.boundingClientRect.top < 0;
             },
@@ -189,7 +149,7 @@ const handleQtyBlur = () => {
 
 // Wishlist interaction
 const handleWishlistToggle = () => {
-    const isAdded = toggleWish(product.name);
+    const isAdded = toggleWish(props.product.name);
     if (isAdded) {
         showToast('Added to wishlist ❤️');
     } else {
@@ -198,13 +158,15 @@ const handleWishlistToggle = () => {
 };
 
 // Cart interactions
+const primaryImagePath = computed(() => props.product.images[0]?.path ?? '');
+
 const handleAddToCart = () => {
-    addToCart(product.name, product.price, product.images[0], qty.value);
+    addToCart(props.product.name, props.product.price, primaryImagePath.value, qty.value);
     showToast(`Added ${qty.value} item(s) to cart 🛒`);
 };
 
 const handleBuyNow = () => {
-    buyNow(product.name, product.price, product.images[0], qty.value);
+    buyNow(props.product.name, props.product.price, primaryImagePath.value, qty.value);
     showToast(`Proceeding to checkout with ${qty.value} item(s) 💳`);
 };
 
@@ -222,7 +184,7 @@ const selectRating = (rating: number) => {
     selectedRating.value = rating;
 };
 
-// Review Submission
+// Review Submission (client-side only, adds to localReviews)
 const handleReviewSubmit = () => {
     if (selectedRating.value === 0) {
         showToast('Please select a star rating');
@@ -236,7 +198,7 @@ const handleReviewSubmit = () => {
         year: 'numeric',
     });
 
-    reviews.value.unshift({
+    localReviews.value.unshift({
         name: reviewName.value || 'Anonymous',
         rating: selectedRating.value,
         date: formattedDate,
@@ -273,9 +235,7 @@ const formatPrice = (price: number) => {
                 </li>
                 <li aria-hidden="true" class="text-gray-300">/</li>
                 <li>
-                    <Link href="/shop" class="hover:text-primary-600">{{
-                        product.category
-                    }}</Link>
+                    <Link :href="`/shop?category=${product.categorySlug}`" class="hover:text-primary-600">{{ product.category }}</Link>
                 </li>
                 <li aria-hidden="true" class="text-gray-300">/</li>
                 <li
@@ -300,8 +260,8 @@ const formatPrice = (price: number) => {
                     class="aspect-square overflow-hidden rounded-xl border border-gray-200 bg-gray-100"
                 >
                     <img
-                        :src="`https://images.unsplash.com/${product.images[selectedImageIndex]}?auto=format&fit=crop&w=900&q=75`"
-                        :alt="product.name"
+                        :src="imageUrl(product.images[selectedImageIndex]?.path ?? '', 900)"
+                        :alt="product.images[selectedImageIndex]?.alt ?? product.name"
                         class="h-full w-full object-cover transition duration-300"
                     />
                 </div>
@@ -321,8 +281,8 @@ const formatPrice = (price: number) => {
                         :aria-label="`View image ${idx + 1}`"
                     >
                         <img
-                            :src="`https://images.unsplash.com/${img}?auto=format&fit=crop&w=200&q=70`"
-                            alt=""
+                            :src="imageUrl(img.path, 200)"
+                            :alt="img.alt"
                             class="h-full w-full object-cover"
                         />
                     </button>
@@ -332,7 +292,7 @@ const formatPrice = (price: number) => {
             <!-- Right: Product Info panel -->
             <div>
                 <Link
-                    href="/shop"
+                    :href="`/shop?category=${product.categorySlug}`"
                     class="text-sm font-medium text-primary-600 hover:text-primary-700"
                 >
                     {{ product.category }}
@@ -370,13 +330,20 @@ const formatPrice = (price: number) => {
                         @click="switchTab('reviews')"
                         class="text-sm text-gray-500 transition hover:text-primary-600"
                     >
-                        {{ product.reviews }} reviews
+                        {{ product.reviewCount }} reviews
                     </button>
                     <span class="text-gray-300">|</span>
                     <span
+                        v-if="product.inStock"
                         class="rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700 shadow-sm"
                     >
                         In Stock
+                    </span>
+                    <span
+                        v-else
+                        class="rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 shadow-sm"
+                    >
+                        Out of Stock
                     </span>
                 </div>
 
@@ -391,23 +358,17 @@ const formatPrice = (price: number) => {
                         >{{ formatPrice(product.oldPrice) }}</span
                     >
                     <span
+                        v-if="discountPercent"
                         class="rounded-full bg-accent-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm"
                     >
-                        Save
-                        {{
-                            Math.round(
-                                (1 - product.price / product.oldPrice) * 100,
-                            )
-                        }}%
+                        Save {{ discountPercent }}%
                     </span>
                 </div>
 
                 <p
                     class="mt-5 max-w-prose text-sm leading-relaxed text-gray-600 md:text-base"
                 >
-                    Premium wireless noise-cancelling headphones with up to 40
-                    hours of battery life and all-day comfort. Full details in
-                    the description below.
+                    {{ product.shortDescription }}
                 </p>
 
                 <hr class="my-6 border-gray-200" />
@@ -643,7 +604,7 @@ const formatPrice = (price: number) => {
                     >
                         Reviews
                         <span class="text-gray-400"
-                            >({{ reviews.length }})</span
+                            >({{ localReviews.length }})</span
                         >
                     </button>
                 </div>
@@ -652,42 +613,11 @@ const formatPrice = (price: number) => {
             <!-- Description panel -->
             <div v-if="activeTab === 'desc'" role="tabpanel" class="pt-6">
                 <div
+                    v-if="product.description"
                     class="max-w-prose space-y-4 text-sm leading-relaxed text-gray-600 md:text-base"
-                >
-                    <p>
-                        The ShopEase Wireless Noise-Cancelling Headphones are
-                        engineered for listeners who refuse to compromise.
-                        Advanced hybrid active noise cancellation silences the
-                        world around you, while custom 40mm drivers deliver
-                        deep, balanced sound across every genre.
-                    </p>
-                    <p>
-                        Designed for all-day comfort, the breathable memory-foam
-                        ear cushions and lightweight headband let you wear them
-                        from your morning commute to late-night sessions. With
-                        up to 40 hours of playback and fast charging — 10
-                        minutes gives you 5 hours — you'll rarely reach for the
-                        cable.
-                    </p>
-                    <h3 class="pt-2 text-base font-semibold text-gray-900">
-                        Key Features
-                    </h3>
-                    <ul class="list-disc space-y-1.5 pl-5">
-                        <li>
-                            Hybrid Active Noise Cancellation (ANC) with
-                            transparency mode
-                        </li>
-                        <li>
-                            Up to 40 hours battery life; USB-C fast charging
-                        </li>
-                        <li>Bluetooth 5.3 with multipoint pairing</li>
-                        <li>
-                            Built-in microphone with environmental noise
-                            reduction for calls
-                        </li>
-                        <li>Foldable design with travel case included</li>
-                    </ul>
-                </div>
+                    v-html="product.description"
+                ></div>
+                <p v-else class="text-sm text-gray-500">No description available for this product.</p>
             </div>
 
             <!-- Reviews panel -->
@@ -698,7 +628,7 @@ const formatPrice = (price: number) => {
                         <div
                             class="rounded-xl border border-gray-200 bg-white p-6 text-center shadow-sm"
                         >
-                            <p class="text-5xl font-bold text-gray-900">4.8</p>
+                            <p class="text-5xl font-bold text-gray-900">{{ product.rating }}</p>
                             <div class="mt-2 flex justify-center gap-0.5">
                                 <svg
                                     v-for="star in 5"
@@ -713,7 +643,7 @@ const formatPrice = (price: number) => {
                                 </svg>
                             </div>
                             <p class="mt-2 text-sm text-gray-500">
-                                Based on {{ reviews.length }} reviews
+                                Based on {{ product.reviewCount }} reviews
                             </p>
                         </div>
 
@@ -748,7 +678,7 @@ const formatPrice = (price: number) => {
                         <!-- Reviews List -->
                         <div class="space-y-6">
                             <div
-                                v-for="(r, idx) in reviews"
+                                v-for="(r, idx) in localReviews"
                                 :key="idx"
                                 class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
                             >
@@ -933,7 +863,7 @@ const formatPrice = (price: number) => {
                             class="block h-full w-full"
                         >
                             <img
-                                :src="`https://images.unsplash.com/${p.img}?auto=format&fit=crop&w=600&q=70`"
+                                :src="imageUrl(p.img)"
                                 :alt="p.name"
                                 loading="lazy"
                                 :class="[
