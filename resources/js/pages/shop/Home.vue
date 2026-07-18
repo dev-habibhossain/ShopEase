@@ -1,15 +1,27 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { useCart } from '@/composables/useCart';
 import { useWishlist } from '@/composables/useWishlist';
 import { useToast } from '@/composables/useToast';
 
+interface HeroSlide {
+    image: string;
+    link: string | null;
+}
+
+interface Category {
+    name: string;
+    slug: string;
+    image: string | null;
+}
+
 interface Product {
+    id: number;
     name: string;
     slug: string;
     price: number;
-    oldPrice?: number;
+    oldPrice?: number | null;
     img: string;
     rating: number;
     reviews: number;
@@ -17,114 +29,27 @@ interface Product {
     tag?: string;
 }
 
-// Statically defined products from design
-const bestSelling: Product[] = [
-    {
-        name: 'Wireless Noise-Cancelling Headphones',
-        slug: 'wireless-noise-cancelling-headphones',
-        price: 6499,
-        oldPrice: 8999,
-        img: 'photo-1505740420928-5e560c06d30e',
-        rating: 4.8,
-        reviews: 214,
-        inStock: true,
-        tag: 'Best Seller',
-    },
-    {
-        name: 'Smart Fitness Watch Series 6',
-        slug: 'smart-fitness-watch-series-6',
-        price: 4299,
-        img: 'photo-1523275335684-37898b6baf30',
-        rating: 4.6,
-        reviews: 167,
-        inStock: true,
-        tag: 'Best Seller',
-    },
-    {
-        name: 'Classic Leather Sneakers',
-        slug: 'classic-leather-sneakers',
-        price: 2999,
-        oldPrice: 3999,
-        img: 'photo-1542291026-7eec264c27ff',
-        rating: 4.7,
-        reviews: 132,
-        inStock: true,
-        tag: 'Best Seller',
-    },
-    {
-        name: 'Premium Sunglasses UV400',
-        slug: 'premium-sunglasses-uv400',
-        price: 1599,
-        img: 'photo-1572635196237-14b3f281503f',
-        rating: 4.5,
-        reviews: 98,
-        inStock: false,
-        tag: 'Best Seller',
-    },
-];
-
-const newCollection: Product[] = [
-    {
-        name: 'Minimalist Backpack 20L',
-        slug: 'minimalist-backpack-20l',
-        price: 2499,
-        img: 'photo-1553062407-98eeb64c6a62',
-        rating: 4.4,
-        reviews: 41,
-        inStock: true,
-        tag: 'New',
-    },
-    {
-        name: 'Ceramic Pour-Over Coffee Set',
-        slug: 'ceramic-pour-over-coffee-set',
-        price: 1899,
-        img: 'photo-1495774856032-8b90bbb32b32',
-        rating: 4.9,
-        reviews: 23,
-        inStock: true,
-        tag: 'New',
-    },
-    {
-        name: 'Mechanical Keyboard RGB',
-        slug: 'mechanical-keyboard-rgb',
-        price: 5499,
-        oldPrice: 6299,
-        img: 'photo-1587829741301-dc798b83add3',
-        rating: 4.7,
-        reviews: 36,
-        inStock: true,
-        tag: 'New',
-    },
-    {
-        name: 'Cotton Oversized T-Shirt',
-        slug: 'cotton-oversized-t-shirt',
-        price: 899,
-        img: 'photo-1521572163474-6864f9cf17ab',
-        rating: 4.3,
-        reviews: 18,
-        inStock: false,
-        tag: 'New',
-    },
-];
+const props = defineProps<{
+    heroSlides: HeroSlide[];
+    categories: Category[];
+    bestSelling: Product[];
+    newCollection: Product[];
+}>();
 
 // Composables
 const { addToCart, buyNow } = useCart();
 const { toggleWish, hasWish } = useWishlist();
 const { showToast } = useToast();
 
-// Carousel Logic
-const slides = [
-    'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1920&q=70',
-    'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1920&q=70',
-    'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=1920&q=70',
-];
-
+// Carousel Logic — driven by heroSlides prop
 const currentSlide = ref(0);
-let autoTimer: any = null;
+let autoTimer: ReturnType<typeof setInterval> | null = null;
 const AUTO_MS = 5000;
 
+const slideCount = computed(() => props.heroSlides.length || 1);
+
 const goToSlide = (index: number) => {
-    currentSlide.value = (index + slides.length) % slides.length;
+    currentSlide.value = ((index % slideCount.value) + slideCount.value) % slideCount.value;
 };
 
 const nextSlide = () => goToSlide(currentSlide.value + 1);
@@ -138,6 +63,7 @@ const startAutoPlay = () => {
 const stopAutoPlay = () => {
     if (autoTimer) {
         clearInterval(autoTimer);
+        autoTimer = null;
     }
 };
 
@@ -188,6 +114,27 @@ const handleBuyNow = (product: Product) => {
     showToast(`Added to cart: ${product.name}. Proceeding to checkout... 💳`);
 };
 
+// Image URL helper — Unsplash photo codes stored in DB are raw codes like "photo-xxx"
+const productImageUrl = (img: string) => {
+    if (!img) {
+        return 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=600&q=70';
+    }
+    if (img.startsWith('http')) {
+        return img;
+    }
+    return `https://images.unsplash.com/${img}?auto=format&fit=crop&w=600&q=70`;
+};
+
+const heroImageUrl = (img: string) => {
+    if (!img) {
+        return '';
+    }
+    if (img.startsWith('http')) {
+        return img;
+    }
+    return `https://images.unsplash.com/${img}?auto=format&fit=crop&w=1920&q=70`;
+};
+
 // Newsletter Form
 const newsletterEmail = ref('');
 const handleNewsletterSubmit = () => {
@@ -220,23 +167,25 @@ const formatPrice = (price: number) => {
             class="relative h-[40vh] overflow-hidden bg-gray-900 sm:h-[55vh] lg:h-[70vh]"
         >
             <!-- Slides -->
-            <div
-                v-for="(slide, index) in slides"
+            <component
+                v-for="(slide, index) in heroSlides"
                 :key="index"
+                :is="slide.link ? 'a' : 'div'"
+                :href="slide.link ?? undefined"
                 :class="[
                     'slide absolute inset-0 transition-opacity duration-700 ease-in-out',
                     { active: currentSlide === index },
                 ]"
                 role="group"
                 aria-roledescription="slide"
-                :aria-label="`${index + 1} of ${slides.length}`"
+                :aria-label="`${index + 1} of ${heroSlides.length}`"
             >
                 <img
-                    :src="slide"
+                    :src="heroImageUrl(slide.image)"
                     alt="Featured promotion banner"
                     class="h-full w-full object-cover opacity-85"
                 />
-            </div>
+            </component>
 
             <!-- Prev / Next controls (hidden on small screens) -->
             <button
@@ -290,7 +239,7 @@ const formatPrice = (price: number) => {
                 class="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2"
             >
                 <button
-                    v-for="(_, index) in slides"
+                    v-for="(_, index) in heroSlides"
                     :key="index"
                     @click="goToSlide(index)"
                     type="button"
@@ -500,119 +449,33 @@ const formatPrice = (price: number) => {
             <div
                 class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-6 lg:grid-cols-6"
             >
-                <!-- Category tiles -->
+                <!-- Category tiles - dynamic from database -->
                 <Link
-                    href="/shop"
+                    v-for="cat in categories"
+                    :key="cat.slug"
+                    :href="`/shop?category=${cat.slug}`"
                     class="group overflow-hidden rounded-xl border border-gray-200 bg-white transition duration-300 ease-out hover:-translate-y-1 hover:border-primary-600 hover:shadow-xl"
                 >
                     <div
                         class="relative aspect-square overflow-hidden bg-gray-100"
                     >
                         <img
-                            src="https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=400&q=70"
-                            alt="Electronics"
+                            v-if="cat.image"
+                            :src="cat.image.startsWith('http') ? cat.image : `https://images.unsplash.com/${cat.image}?auto=format&fit=crop&w=400&q=70`"
+                            :alt="cat.name"
                             loading="lazy"
                             class="h-full w-full object-cover transition duration-500 ease-out group-hover:scale-110"
                         />
+                        <div
+                            v-else
+                            class="flex h-full w-full items-center justify-center bg-gray-200"
+                        >
+                            <span class="text-gray-400 text-xs">No image</span>
+                        </div>
                     </div>
                     <span
                         class="block px-2 py-3 text-center text-sm font-medium text-gray-900 transition group-hover:text-primary-600"
-                        >Electronics</span
-                    >
-                </Link>
-                <Link
-                    href="/shop"
-                    class="group overflow-hidden rounded-xl border border-gray-200 bg-white transition duration-300 ease-out hover:-translate-y-1 hover:border-primary-600 hover:shadow-xl"
-                >
-                    <div
-                        class="relative aspect-square overflow-hidden bg-gray-100"
-                    >
-                        <img
-                            src="https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=400&q=70"
-                            alt="Fashion"
-                            loading="lazy"
-                            class="h-full w-full object-cover transition duration-500 ease-out group-hover:scale-110"
-                        />
-                    </div>
-                    <span
-                        class="block px-2 py-3 text-center text-sm font-medium text-gray-900 transition group-hover:text-primary-600"
-                        >Fashion</span
-                    >
-                </Link>
-                <Link
-                    href="/shop"
-                    class="group overflow-hidden rounded-xl border border-gray-200 bg-white transition duration-300 ease-out hover:-translate-y-1 hover:border-primary-600 hover:shadow-xl"
-                >
-                    <div
-                        class="relative aspect-square overflow-hidden bg-gray-100"
-                    >
-                        <img
-                            src="https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?auto=format&fit=crop&w=400&q=70"
-                            alt="Home & Living"
-                            loading="lazy"
-                            class="h-full w-full object-cover transition duration-500 ease-out group-hover:scale-110"
-                        />
-                    </div>
-                    <span
-                        class="block px-2 py-3 text-center text-sm font-medium text-gray-900 transition group-hover:text-primary-600"
-                        >Home &amp; Living</span
-                    >
-                </Link>
-                <Link
-                    href="/shop"
-                    class="group overflow-hidden rounded-xl border border-gray-200 bg-white transition duration-300 ease-out hover:-translate-y-1 hover:border-primary-600 hover:shadow-xl"
-                >
-                    <div
-                        class="relative aspect-square overflow-hidden bg-gray-100"
-                    >
-                        <img
-                            src="https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=400&q=70"
-                            alt="Beauty"
-                            loading="lazy"
-                            class="h-full w-full object-cover transition duration-500 ease-out group-hover:scale-110"
-                        />
-                    </div>
-                    <span
-                        class="block px-2 py-3 text-center text-sm font-medium text-gray-900 transition group-hover:text-primary-600"
-                        >Beauty</span
-                    >
-                </Link>
-                <Link
-                    href="/shop"
-                    class="group overflow-hidden rounded-xl border border-gray-200 bg-white transition duration-300 ease-out hover:-translate-y-1 hover:border-primary-600 hover:shadow-xl"
-                >
-                    <div
-                        class="relative aspect-square overflow-hidden bg-gray-100"
-                    >
-                        <img
-                            src="https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=400&q=70"
-                            alt="Sports"
-                            loading="lazy"
-                            class="h-full w-full object-cover transition duration-500 ease-out group-hover:scale-110"
-                        />
-                    </div>
-                    <span
-                        class="block px-2 py-3 text-center text-sm font-medium text-gray-900 transition group-hover:text-primary-600"
-                        >Sports</span
-                    >
-                </Link>
-                <Link
-                    href="/shop"
-                    class="group overflow-hidden rounded-xl border border-gray-200 bg-white transition duration-300 ease-out hover:-translate-y-1 hover:border-primary-600 hover:shadow-xl"
-                >
-                    <div
-                        class="relative aspect-square overflow-hidden bg-gray-100"
-                    >
-                        <img
-                            src="https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=400&q=70"
-                            alt="Books"
-                            loading="lazy"
-                            class="h-full w-full object-cover transition duration-500 ease-out group-hover:scale-110"
-                        />
-                    </div>
-                    <span
-                        class="block px-2 py-3 text-center text-sm font-medium text-gray-900 transition group-hover:text-primary-600"
-                        >Books</span
+                        >{{ cat.name }}</span
                     >
                 </Link>
             </div>
@@ -670,7 +533,7 @@ const formatPrice = (price: number) => {
                             class="block h-full w-full"
                         >
                             <img
-                                :src="`https://images.unsplash.com/${p.img}?auto=format&fit=crop&w=600&q=70`"
+                                :src="productImageUrl(p.img)"
                                 :alt="p.name"
                                 loading="lazy"
                                 :class="[
@@ -899,7 +762,7 @@ const formatPrice = (price: number) => {
                             class="block h-full w-full"
                         >
                             <img
-                                :src="`https://images.unsplash.com/${p.img}?auto=format&fit=crop&w=600&q=70`"
+                                :src="productImageUrl(p.img)"
                                 :alt="p.name"
                                 loading="lazy"
                                 :class="[
