@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { ref, computed, watch } from 'vue';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import { useCart } from '@/composables/useCart';
 import { useWishlist } from '@/composables/useWishlist';
 import { useToast } from '@/composables/useToast';
@@ -225,6 +225,21 @@ const inStockOnly = ref(false);
 const sortBy = ref('newest');
 const currentPage = ref(1);
 const isMobileFiltersOpen = ref(false);
+
+const page = usePage();
+watch(
+    () => page.url,
+    (newUrl) => {
+        const urlObj = new URL(newUrl, window.location.origin);
+        const cat = urlObj.searchParams.get('category');
+        if (cat) {
+            selectedCategory.value = cat;
+        } else {
+            selectedCategory.value = 'all';
+        }
+    },
+    { immediate: true }
+);
 
 const openMobileFilters = () => {
     isMobileFiltersOpen.value = true;
