@@ -1,229 +1,71 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { ref, computed, watch } from 'vue';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { useCart } from '@/composables/useCart';
 import { useWishlist } from '@/composables/useWishlist';
 import { useToast } from '@/composables/useToast';
+
+interface Category {
+    name: string;
+    slug: string;
+}
 
 interface Product {
     id: number;
     name: string;
     slug: string;
     price: number;
-    oldPrice?: number;
+    oldPrice?: number | null;
     img: string;
     rating: number;
     reviews: number;
     inStock: boolean;
-    category: string;
     tag: string;
-    sold: number;
+    soldCount: number;
 }
 
-// 14 products from design catalog with slugs
-const products: Product[] = [
-    {
-        id: 14,
-        name: 'Wireless Noise-Cancelling Headphones',
-        slug: 'wireless-noise-cancelling-headphones',
-        price: 6499,
-        oldPrice: 8999,
-        img: 'photo-1505740420928-5e560c06d30e',
-        rating: 4.8,
-        reviews: 214,
-        inStock: true,
-        category: 'Electronics',
-        tag: 'Best Seller',
-        sold: 980,
-    },
-    {
-        id: 13,
-        name: 'Smart Fitness Watch Series 6',
-        slug: 'smart-fitness-watch-series-6',
-        price: 4299,
-        img: 'photo-1523275335684-37898b6baf30',
-        rating: 4.6,
-        reviews: 167,
-        inStock: true,
-        category: 'Electronics',
-        tag: 'Best Seller',
-        sold: 870,
-    },
-    {
-        id: 12,
-        name: 'Classic Leather Sneakers',
-        slug: 'classic-leather-sneakers',
-        price: 2999,
-        oldPrice: 3999,
-        img: 'photo-1542291026-7eec264c27ff',
-        rating: 4.7,
-        reviews: 132,
-        inStock: true,
-        category: 'Fashion',
-        tag: '',
-        sold: 760,
-    },
-    {
-        id: 11,
-        name: 'Premium Sunglasses UV400',
-        slug: 'premium-sunglasses-uv400',
-        price: 1599,
-        img: 'photo-1572635196237-14b3f281503f',
-        rating: 4.5,
-        reviews: 98,
-        inStock: false,
-        category: 'Fashion',
-        tag: '',
-        sold: 540,
-    },
-    {
-        id: 10,
-        name: 'Minimalist Backpack 20L',
-        slug: 'minimalist-backpack-20l',
-        price: 2499,
-        img: 'photo-1553062407-98eeb64c6a62',
-        rating: 4.4,
-        reviews: 41,
-        inStock: true,
-        category: 'Fashion',
-        tag: 'New',
-        sold: 320,
-    },
-    {
-        id: 9,
-        name: 'Ceramic Pour-Over Coffee Set',
-        slug: 'ceramic-pour-over-coffee-set',
-        price: 1899,
-        img: 'photo-1495774856032-8b90bbb32b32',
-        rating: 4.9,
-        reviews: 23,
-        inStock: true,
-        category: 'Home & Living',
-        tag: 'New',
-        sold: 210,
-    },
-    {
-        id: 8,
-        name: 'Mechanical Keyboard RGB',
-        slug: 'mechanical-keyboard-rgb',
-        price: 5499,
-        oldPrice: 6299,
-        img: 'photo-1587829741301-dc798b83add3',
-        rating: 4.7,
-        reviews: 36,
-        inStock: true,
-        category: 'Electronics',
-        tag: '',
-        sold: 430,
-    },
-    {
-        id: 7,
-        name: 'Cotton Oversized T-Shirt',
-        slug: 'cotton-oversized-t-shirt',
-        price: 899,
-        img: 'photo-1521572163474-6864f9cf17ab',
-        rating: 4.3,
-        reviews: 18,
-        inStock: false,
-        category: 'Fashion',
-        tag: '',
-        sold: 150,
-    },
-    {
-        id: 6,
-        name: 'Portable Bluetooth Speaker',
-        slug: 'portable-bluetooth-speaker',
-        price: 2199,
-        oldPrice: 2799,
-        img: 'photo-1608043152269-423dbba4e7e1',
-        rating: 4.5,
-        reviews: 89,
-        inStock: true,
-        category: 'Electronics',
-        tag: '',
-        sold: 620,
-    },
-    {
-        id: 5,
-        name: 'Wireless Earbuds Pro',
-        slug: 'wireless-earbuds-pro',
-        price: 3499,
-        img: 'photo-1590658268037-6bf12165a8df',
-        rating: 4.7,
-        reviews: 142,
-        inStock: true,
-        category: 'Electronics',
-        tag: 'Best Seller',
-        sold: 810,
-    },
-    {
-        id: 4,
-        name: 'Scented Soy Candle Set',
-        slug: 'scented-soy-candle-set',
-        price: 749,
-        img: 'photo-1602874801007-bd458bb1b8b6',
-        rating: 4.6,
-        reviews: 52,
-        inStock: true,
-        category: 'Home & Living',
-        tag: '',
-        sold: 280,
-    },
-    {
-        id: 3,
-        name: 'Matte Lipstick Collection',
-        slug: 'matte-lipstick-collection',
-        price: 1299,
-        oldPrice: 1699,
-        img: 'photo-1586495777744-4413f21062fa',
-        rating: 4.4,
-        reviews: 64,
-        inStock: true,
-        category: 'Beauty',
-        tag: 'New',
-        sold: 360,
-    },
-    {
-        id: 2,
-        name: 'Yoga Mat Non-Slip',
-        slug: 'yoga-mat-non-slip',
-        price: 1450,
-        img: 'photo-1601925260368-ae2f83cf8b7f',
-        rating: 4.5,
-        reviews: 77,
-        inStock: true,
-        category: 'Sports',
-        tag: '',
-        sold: 290,
-    },
-    {
-        id: 1,
-        name: 'Stainless Steel Water Bottle',
-        slug: 'stainless-steel-water-bottle',
-        price: 999,
-        img: 'photo-1602143407151-7111542de6e8',
-        rating: 4.6,
-        reviews: 110,
-        inStock: false,
-        category: 'Sports',
-        tag: '',
-        sold: 470,
-    },
-];
+interface PaginatorLink {
+    url: string | null;
+    label: string;
+    active: boolean;
+}
+
+interface Paginator {
+    data: Product[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    links: PaginatorLink[];
+    from: number | null;
+    to: number | null;
+}
+
+interface Filters {
+    search: string;
+    category: string;
+    price: string;
+    stock: boolean;
+    sort: string;
+}
+
+const props = defineProps<{
+    products: Paginator;
+    categories: Category[];
+    filters: Filters;
+}>();
 
 // Composables
 const { addToCart, buyNow } = useCart();
 const { toggleWish, hasWish } = useWishlist();
 const { showToast } = useToast();
 
-// State
-const PAGE_SIZE = 8;
-const searchQuery = ref('');
-const selectedCategory = ref('all');
-const selectedPriceRange = ref('all');
-const inStockOnly = ref(false);
-const sortBy = ref('newest');
-const currentPage = ref(1);
+// Local filter state — initialised from server-supplied filters
+const searchQuery = ref(props.filters.search);
+const selectedCategory = ref(props.filters.category || 'all');
+const selectedPriceRange = ref(props.filters.price || 'all');
+const inStockOnly = ref(props.filters.stock);
+const sortBy = ref(props.filters.sort || 'newest');
 const isMobileFiltersOpen = ref(false);
 
 const openMobileFilters = () => {
@@ -236,105 +78,78 @@ const closeMobileFilters = () => {
     document.body.style.overflow = '';
 };
 
-// Price check helper
-const inPriceRange = (price: number, range: string) => {
-    if (range === 'all') return true;
-    const [min, max] = range.split('-');
-    if (price < Number(min)) return false;
-    if (max !== '' && price > Number(max)) return false;
-    return true;
+// Fire an Inertia GET visit with the current filter state
+const applyFilters = (overrides: Partial<Filters> = {}) => {
+    const params: Record<string, string | boolean> = {
+        search: searchQuery.value,
+        category: selectedCategory.value === 'all' ? '' : selectedCategory.value,
+        price: selectedPriceRange.value === 'all' ? '' : selectedPriceRange.value,
+        stock: inStockOnly.value,
+        sort: sortBy.value,
+        ...overrides,
+    };
+
+    // Strip empty strings so the URL stays clean
+    const clean: Record<string, string | boolean> = {};
+    for (const [k, v] of Object.entries(params)) {
+        if (v !== '' && v !== false) {
+            clean[k] = v;
+        }
+    }
+
+    router.get(route('shop'), clean, {
+        preserveState: true,
+        replace: true,
+    });
 };
 
-// Filtered and sorted products list
-const filteredProducts = computed(() => {
-    let list = [...products];
+// Debounce search so we don't hit the server on every keystroke
+let searchTimer: ReturnType<typeof setTimeout> | null = null;
+const handleSearchInput = () => {
+    if (searchTimer) clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => applyFilters(), 400);
+};
 
-    // Filter by Search Query
-    if (searchQuery.value.trim() !== '') {
-        const query = searchQuery.value.toLowerCase().trim();
-        list = list.filter((p) => p.name.toLowerCase().includes(query));
-    }
-
-    // Filter by Category
-    if (selectedCategory.value !== 'all') {
-        list = list.filter((p) => p.category === selectedCategory.value);
-    }
-
-    // Filter by Price Range
-    if (selectedPriceRange.value !== 'all') {
-        list = list.filter((p) =>
-            inPriceRange(p.price, selectedPriceRange.value),
-        );
-    }
-
-    // Filter by Stock Availability
-    if (inStockOnly.value) {
-        list = list.filter((p) => p.inStock);
-    }
-
-    // Sort products
-    switch (sortBy.value) {
-        case 'price-asc':
-            list.sort((a, b) => a.price - b.price);
-            break;
-        case 'price-desc':
-            list.sort((a, b) => b.price - a.price);
-            break;
-        case 'best':
-            list.sort((a, b) => b.sold - a.sold);
-            break;
-        default: // newest
-            list.sort((a, b) => b.id - a.id);
-            break;
-    }
-
-    return list;
-});
-
-// Paginated products list
-const paginatedProducts = computed(() => {
-    const start = (currentPage.value - 1) * PAGE_SIZE;
-    return filteredProducts.value.slice(start, start + PAGE_SIZE);
-});
-
-// Total pages computation
-const totalPages = computed(() => {
-    return Math.max(1, Math.ceil(filteredProducts.value.length / PAGE_SIZE));
-});
-
-// Reset page on filter changes
 const handleFilterChange = () => {
-    currentPage.value = 1;
+    applyFilters();
 };
 
-// Active chips list
+const clearAllFilters = () => {
+    searchQuery.value = '';
+    selectedCategory.value = 'all';
+    selectedPriceRange.value = 'all';
+    inStockOnly.value = false;
+    sortBy.value = 'newest';
+    router.get(route('shop'), {}, { preserveState: false, replace: true });
+};
+
+// Active filter chips for display
 const activeChips = computed(() => {
     const chips: { label: string; clear: () => void }[] = [];
 
-    if (selectedCategory.value !== 'all') {
+    if (selectedCategory.value !== 'all' && selectedCategory.value !== '') {
+        const cat = props.categories.find((c) => c.slug === selectedCategory.value);
         chips.push({
-            label: selectedCategory.value,
+            label: cat?.name ?? selectedCategory.value,
             clear: () => {
                 selectedCategory.value = 'all';
-                handleFilterChange();
+                applyFilters();
             },
         });
     }
 
-    if (selectedPriceRange.value !== 'all') {
-        let label = '';
-        if (selectedPriceRange.value === '0-1000') label = 'Under ৳ 1,000';
-        else if (selectedPriceRange.value === '1000-3000')
-            label = '৳ 1,000 – ৳ 3,000';
-        else if (selectedPriceRange.value === '3000-6000')
-            label = '৳ 3,000 – ৳ 6,000';
-        else if (selectedPriceRange.value === '6000-') label = 'Over ৳ 6,000';
-
+    if (selectedPriceRange.value !== 'all' && selectedPriceRange.value !== '') {
+        const labels: Record<string, string> = {
+            '0-1000': 'Under ৳ 1,000',
+            '1000-3000': '৳ 1,000 – ৳ 3,000',
+            '3000-6000': '৳ 3,000 – ৳ 6,000',
+            '6000+': 'Over ৳ 6,000',
+        };
         chips.push({
-            label,
+            label: labels[selectedPriceRange.value] ?? selectedPriceRange.value,
             clear: () => {
                 selectedPriceRange.value = 'all';
-                handleFilterChange();
+                applyFilters();
             },
         });
     }
@@ -344,17 +159,17 @@ const activeChips = computed(() => {
             label: 'In Stock',
             clear: () => {
                 inStockOnly.value = false;
-                handleFilterChange();
+                applyFilters();
             },
         });
     }
 
     if (searchQuery.value.trim() !== '') {
         chips.push({
-            label: `“${searchQuery.value}”`,
+            label: `"${searchQuery.value}"`,
             clear: () => {
                 searchQuery.value = '';
-                handleFilterChange();
+                applyFilters();
             },
         });
     }
@@ -362,33 +177,23 @@ const activeChips = computed(() => {
     return chips;
 });
 
-// Clear all filters
-const clearAllFilters = () => {
-    selectedCategory.value = 'all';
-    selectedPriceRange.value = 'all';
-    inStockOnly.value = false;
-    searchQuery.value = '';
-    currentPage.value = 1;
+// Image URL helper
+const imageUrl = (path: string) => {
+    if (!path) {
+        return 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=600&q=70';
+    }
+    if (path.startsWith('http')) {
+        return path;
+    }
+    return `https://images.unsplash.com/${path}?auto=format&fit=crop&w=600&q=70`;
 };
 
-// Page change handler
-const changePage = (page: number) => {
-    if (page < 1 || page > totalPages.value) return;
-    currentPage.value = page;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-};
-
-// Wishlist interaction
+// Cart/wishlist handlers
 const handleWishlistToggle = (productName: string) => {
     const isAdded = toggleWish(productName);
-    if (isAdded) {
-        showToast(`Added to wishlist: ${productName} ❤️`);
-    } else {
-        showToast(`Removed from wishlist: ${productName}`);
-    }
+    showToast(isAdded ? `Added to wishlist: ${productName} ❤️` : `Removed from wishlist: ${productName}`);
 };
 
-// Cart interactions
 const handleAddToCart = (product: Product) => {
     addToCart(product.name, product.price, product.img);
     showToast(`Added to cart: ${product.name} 🛒`);
