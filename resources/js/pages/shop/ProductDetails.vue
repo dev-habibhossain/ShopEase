@@ -598,8 +598,7 @@ const formatPrice = (price: number) => {
                         </svg>
                         <p class="text-sm text-gray-600">
                             Secure online payment via
-                            <span class="font-medium text-gray-900"
-                                >Stripe</span
+                            <span class="font-medium text-gray-900">Stripe</span
                             >.
                         </p>
                     </div>

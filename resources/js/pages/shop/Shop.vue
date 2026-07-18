@@ -881,16 +881,21 @@ const formatPrice = (price: number) => {
             <!-- ============================ RESULTS ============================ -->
             <div>
                 <!-- Toolbar -->
-                <div class="mb-5 flex items-center justify-between gap-3">
-                    <p class="text-sm text-gray-600">
+                <div
+                    class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                >
+                    <p class="order-2 text-sm text-gray-600 sm:order-1">
+                        Showing
                         <span class="font-semibold text-gray-900">{{
                             filteredProducts.length
                         }}</span>
                         products
                     </p>
-                    <div class="flex items-center gap-2">
+                    <div
+                        class="order-1 flex w-full flex-col gap-2 sm:order-2 sm:w-auto sm:flex-row sm:items-center"
+                    >
                         <!-- Local Search Bar -->
-                        <div class="relative w-40 sm:w-60">
+                        <div class="relative w-full sm:w-60">
                             <span
                                 class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400"
                             >
@@ -917,47 +922,52 @@ const formatPrice = (price: number) => {
                             />
                         </div>
 
-                        <button
-                            @click="openMobileFilters"
-                            type="button"
-                            class="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 lg:hidden"
-                        >
-                            <svg
-                                class="h-5 w-5"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                stroke-width="2"
+                        <!-- Filters & Sort Action Row (side-by-side on mobile, inline on sm) -->
+                        <div class="flex w-full items-center gap-2 sm:w-auto">
+                            <button
+                                @click="openMobileFilters"
+                                type="button"
+                                class="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-primary-600 focus:outline-none lg:hidden"
                             >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L14 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 018 21v-7.586L3.293 6.707A1 1 0 013 6V4z"
-                                />
-                            </svg>
-                            Filters
-                        </button>
-                        <div class="flex items-center gap-2">
-                            <label
-                                for="sortSelect"
-                                class="hidden text-sm text-gray-500 sm:block"
-                                >Sort:</label
+                                <svg
+                                    class="h-5 w-5 text-gray-500"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L14 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 018 21v-7.586L3.293 6.707A1 1 0 013 6V4z"
+                                    />
+                                </svg>
+                                Filters
+                            </button>
+                            <div
+                                class="flex flex-1 items-center gap-2 sm:flex-initial"
                             >
-                            <select
-                                id="sortSelect"
-                                v-model="sortBy"
-                                @change="handleFilterChange"
-                                class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary-600 focus:ring-2 focus:ring-primary-600 focus:outline-none"
-                            >
-                                <option value="newest">Newest</option>
-                                <option value="best">Best Selling</option>
-                                <option value="price-asc">
-                                    Price: Low to High
-                                </option>
-                                <option value="price-desc">
-                                    Price: High to Low
-                                </option>
-                            </select>
+                                <label
+                                    for="sortSelect"
+                                    class="hidden text-sm text-gray-500 md:block"
+                                    >Sort:</label
+                                >
+                                <select
+                                    id="sortSelect"
+                                    v-model="sortBy"
+                                    @change="handleFilterChange"
+                                    class="w-full rounded-lg border border-gray-300 bg-white px-2 py-2 text-xs text-gray-900 focus:border-primary-600 focus:ring-2 focus:ring-primary-600 focus:outline-none sm:w-auto sm:px-3 sm:text-sm"
+                                >
+                                    <option value="newest">Newest</option>
+                                    <option value="best">Best Selling</option>
+                                    <option value="price-asc">
+                                        Price: Low to High
+                                    </option>
+                                    <option value="price-desc">
+                                        Price: High to Low
+                                    </option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -994,12 +1004,12 @@ const formatPrice = (price: number) => {
                 <!-- Product grid -->
                 <div
                     v-if="paginatedProducts.length > 0"
-                    class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-6 lg:grid-cols-4"
+                    class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 md:gap-6 lg:grid-cols-4"
                 >
                     <article
                         v-for="p in paginatedProducts"
                         :key="p.id"
-                        class="group flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition duration-300 ease-out hover:-translate-y-1 hover:border-primary-600 hover:shadow-xl"
+                        class="group flex h-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition duration-300 ease-out hover:-translate-y-1 hover:border-primary-600 hover:shadow-xl"
                     >
                         <div
                             class="relative aspect-square overflow-hidden bg-gray-100"
@@ -1122,15 +1132,17 @@ const formatPrice = (price: number) => {
                                 >
                             </div>
                             <div class="mt-auto pt-3">
-                                <div class="flex flex-col gap-2">
+                                <div
+                                    class="grid grid-cols-2 gap-1.5 min-[513px]:flex min-[513px]:flex-col min-[513px]:gap-2"
+                                >
                                     <button
                                         v-if="p.inStock"
                                         @click="handleAddToCart(p)"
                                         type="button"
-                                        class="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-primary-600 px-3 py-2.5 text-sm font-medium text-primary-600 transition hover:bg-primary-50 focus:ring-2 focus:ring-primary-600 focus:outline-none"
+                                        class="inline-flex w-full items-center justify-center gap-1 rounded-lg border border-primary-600 px-2 py-2 text-xs font-medium text-primary-600 transition hover:bg-primary-50 focus:ring-2 focus:ring-primary-600 focus:outline-none min-[513px]:px-2.5 min-[513px]:py-2 md:gap-1.5 lg:text-sm"
                                     >
                                         <svg
-                                            class="h-4 w-4"
+                                            class="h-3.5 w-3.5 min-[513px]:h-4 min-[513px]:w-4"
                                             fill="none"
                                             viewBox="0 0 24 24"
                                             stroke="currentColor"
@@ -1142,16 +1154,23 @@ const formatPrice = (price: number) => {
                                                 d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
                                             />
                                         </svg>
-                                        Add to Cart
+                                        <span
+                                            class="hidden min-[513px]:inline"
+                                            >Add to Cart</span
+                                        >
+                                        <span
+                                            class="inline min-[513px]:hidden"
+                                            >Add</span
+                                        >
                                     </button>
                                     <button
                                         v-else
                                         disabled
                                         type="button"
-                                        class="inline-flex w-full cursor-not-allowed items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-medium text-gray-400"
+                                        class="inline-flex w-full cursor-not-allowed items-center justify-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-2 py-2 text-xs font-medium text-gray-400 min-[513px]:px-2.5 min-[513px]:py-2 md:gap-1.5 lg:text-sm"
                                     >
                                         <svg
-                                            class="h-4 w-4"
+                                            class="h-3.5 w-3.5 min-[513px]:h-4 min-[513px]:w-4"
                                             fill="none"
                                             viewBox="0 0 24 24"
                                             stroke="currentColor"
@@ -1163,23 +1182,44 @@ const formatPrice = (price: number) => {
                                                 d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
                                             />
                                         </svg>
-                                        Add to Cart
+                                        <span
+                                            class="hidden min-[513px]:inline"
+                                            >Add to Cart</span
+                                        >
+                                        <span
+                                            class="inline min-[513px]:hidden"
+                                            >Add</span
+                                        >
                                     </button>
                                     <button
                                         v-if="p.inStock"
                                         @click="handleBuyNow(p)"
                                         type="button"
-                                        class="w-full rounded-lg bg-primary-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-700 focus:ring-2 focus:ring-primary-600 focus:outline-none"
+                                        class="w-full rounded-lg bg-primary-600 px-2 py-2 text-xs font-semibold text-white transition hover:bg-primary-700 focus:ring-2 focus:ring-primary-600 focus:outline-none min-[513px]:px-2.5 min-[513px]:py-2 lg:text-sm"
                                     >
-                                        Buy Now
+                                        <span
+                                            class="hidden min-[513px]:inline"
+                                            >Buy Now</span
+                                        >
+                                        <span
+                                            class="inline min-[513px]:hidden"
+                                            >Buy</span
+                                        >
                                     </button>
                                     <button
                                         v-else
                                         disabled
                                         type="button"
-                                        class="w-full cursor-not-allowed rounded-lg bg-gray-200 px-3 py-2.5 text-sm font-semibold text-gray-400"
+                                        class="w-full cursor-not-allowed rounded-lg bg-gray-200 px-2 py-2 text-xs font-semibold text-gray-400 min-[513px]:px-2.5 min-[513px]:py-2 lg:text-sm"
                                     >
-                                        Notify Me
+                                        <span
+                                            class="hidden min-[513px]:inline"
+                                            >Notify Me</span
+                                        >
+                                        <span
+                                            class="inline min-[513px]:hidden"
+                                            >Notify</span
+                                        >
                                     </button>
                                 </div>
                             </div>
@@ -1264,3 +1304,23 @@ const formatPrice = (price: number) => {
         </div>
     </div>
 </template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.3s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+}
+
+.slide-right-enter-active,
+.slide-right-leave-active {
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.slide-right-enter-from,
+.slide-right-leave-to {
+    transform: translateX(100%);
+}
+</style>
