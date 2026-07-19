@@ -20,6 +20,8 @@ const { wishCount } = useWishlist();
 const { toastMessage, isToastVisible } = useToast();
 
 const isMobileMenuOpen = ref(false);
+const isCategoriesDropdownOpen = ref(false);
+const isMobileCategoriesOpen = ref(false);
 
 const formatPrice = (price: number) => {
     return '৳ ' + Number(price).toLocaleString('en-BD');
@@ -32,6 +34,7 @@ const openMobileMenu = () => {
 
 const closeMobileMenu = () => {
     isMobileMenuOpen.value = false;
+    isMobileCategoriesOpen.value = false;
     document.body.style.overflow = '';
 };
 
@@ -63,7 +66,7 @@ const currentYear = new Date().getFullYear();
                             type="button"
                             aria-label="Open menu"
                             :aria-expanded="isMobileMenuOpen"
-                            class="-ml-1 inline-flex h-11 w-11 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 focus:ring-2 focus:ring-primary-600 focus:outline-none lg:hidden"
+                            class="-ml-1 inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 focus:ring-2 focus:ring-primary-600 focus:outline-none lg:hidden"
                         >
                             <svg
                                 class="h-6 w-6"
@@ -86,7 +89,7 @@ const currentYear = new Date().getFullYear();
                             aria-label="ShopEase home"
                         >
                             <span
-                                class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary-600 text-white"
+                                class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-600 text-white"
                             >
                                 <svg
                                     class="h-5 w-5"
@@ -103,7 +106,7 @@ const currentYear = new Date().getFullYear();
                                 </svg>
                             </span>
                             <span
-                                class="font-display text-xl font-extrabold tracking-tight text-gray-900"
+                                class="font-display text-xl font-extrabold tracking-tight text-gray-900 shrink-0"
                             >
                                 Shop<span class="text-primary-600">Ease</span>
                             </span>
@@ -117,7 +120,7 @@ const currentYear = new Date().getFullYear();
                     >
                         <Link
                             href="/"
-                            class="rounded-lg px-3 py-2 text-sm font-medium text-gray-900 transition hover:bg-gray-100"
+                            class="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-900"
                             >Home</Link
                         >
                         <Link
@@ -125,15 +128,63 @@ const currentYear = new Date().getFullYear();
                             class="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-900"
                             >Shop</Link
                         >
-                        <a
-                            href="#categories"
-                            class="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-900"
-                            >Categories</a
+                        
+                        <!-- Categories Dropdown -->
+                        <div
+                            class="relative"
+                            @mouseenter="isCategoriesDropdownOpen = true"
+                            @mouseleave="isCategoriesDropdownOpen = false"
                         >
-                        <a
-                            href="#bestselling"
+                            <button
+                                type="button"
+                                @click="isCategoriesDropdownOpen = !isCategoriesDropdownOpen"
+                                class="inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-900"
+                            >
+                                <span>Categories</span>
+                                <svg
+                                    class="h-4 w-4 transition-transform duration-200"
+                                    :class="{ 'rotate-180': isCategoriesDropdownOpen }"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        d="M19 9l-7 7-7-7"
+                                    />
+                                </svg>
+                            </button>
+                            <transition
+                                enter-active-class="transition ease-out duration-200"
+                                enter-from-class="opacity-0 translate-y-1"
+                                enter-to-class="opacity-100 translate-y-0"
+                                leave-active-class="transition ease-in duration-150"
+                                leave-from-class="opacity-100 translate-y-0"
+                                leave-to-class="opacity-0 translate-y-1"
+                            >
+                                <div
+                                    v-show="isCategoriesDropdownOpen"
+                                    class="absolute left-0 z-50 mt-1 w-56 origin-top-left rounded-xl border border-gray-200 bg-white p-2 shadow-xl focus:outline-none"
+                                >
+                                    <Link
+                                        v-for="cat in ['Electronics', 'Fashion', 'Home & Living', 'Beauty', 'Sports', 'Books']"
+                                        :key="cat"
+                                        :href="`/shop?category=${encodeURIComponent(cat)}`"
+                                        @click="isCategoriesDropdownOpen = false"
+                                        class="block rounded-lg px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                                    >
+                                        {{ cat }}
+                                    </Link>
+                                </div>
+                            </transition>
+                        </div>
+
+                        <Link
+                            href="/help-support"
                             class="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-900"
-                            >Best Selling</a
+                            >Help & Support</Link
                         >
                     </nav>
 
@@ -170,11 +221,11 @@ const currentYear = new Date().getFullYear();
                     </div>
 
                     <!-- Right: icons -->
-                    <div class="flex items-center gap-1">
+                    <div class="flex items-center gap-0.5 sm:gap-1">
                         <button
                             type="button"
                             aria-label="Search"
-                            class="inline-flex h-11 w-11 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 focus:ring-2 focus:ring-primary-600 focus:outline-none md:hidden"
+                            class="inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 focus:ring-2 focus:ring-primary-600 focus:outline-none md:hidden"
                         >
                             <svg
                                 class="h-6 w-6"
@@ -193,7 +244,7 @@ const currentYear = new Date().getFullYear();
                         <Link
                             href="/login"
                             aria-label="Account"
-                            class="hidden h-11 w-11 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 focus:ring-2 focus:ring-primary-600 focus:outline-none sm:inline-flex"
+                            class="hidden h-10 w-10 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 focus:ring-2 focus:ring-primary-600 focus:outline-none sm:inline-flex"
                         >
                             <svg
                                 class="h-6 w-6"
@@ -212,7 +263,7 @@ const currentYear = new Date().getFullYear();
                         <Link
                             href="/wishlist"
                             :aria-label="`Wishlist, ${wishCount} items`"
-                            class="relative inline-flex h-11 w-11 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 focus:ring-2 focus:ring-primary-600 focus:outline-none"
+                            class="relative inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 focus:ring-2 focus:ring-primary-600 focus:outline-none"
                         >
                             <svg
                                 class="h-6 w-6"
@@ -237,7 +288,7 @@ const currentYear = new Date().getFullYear();
                             @click="openCart"
                             type="button"
                             :aria-label="`Cart, ${cartQty} items`"
-                            class="relative inline-flex h-11 w-11 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 focus:ring-2 focus:ring-primary-600 focus:outline-none"
+                            class="relative inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 focus:ring-2 focus:ring-primary-600 focus:outline-none"
                         >
                             <svg
                                 class="h-6 w-6"
@@ -348,23 +399,49 @@ const currentYear = new Date().getFullYear();
                             class="rounded-lg px-3 py-3 text-base font-medium text-gray-700 hover:bg-gray-100"
                             >Shop</Link
                         >
-                        <a
-                            href="#categories"
+                        <!-- Collapsible Categories on Mobile -->
+                        <div class="space-y-1">
+                            <button
+                                @click="isMobileCategoriesOpen = !isMobileCategoriesOpen"
+                                class="flex w-full items-center justify-between rounded-lg px-3 py-3 text-base font-medium text-gray-700 hover:bg-gray-100"
+                            >
+                                <span>Categories</span>
+                                <svg
+                                    class="h-5 w-5 transition-transform duration-200"
+                                    :class="{ 'rotate-180': isMobileCategoriesOpen }"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        d="M19 9l-7 7-7-7"
+                                    />
+                                </svg>
+                            </button>
+                            <div
+                                v-show="isMobileCategoriesOpen"
+                                class="pl-4 space-y-1"
+                            >
+                                <Link
+                                    v-for="cat in ['Electronics', 'Fashion', 'Home & Living', 'Beauty', 'Sports', 'Books']"
+                                    :key="cat"
+                                    :href="`/shop?category=${encodeURIComponent(cat)}`"
+                                    @click="closeMobileMenu"
+                                    class="block rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"
+                                >
+                                    {{ cat }}
+                                </Link>
+                            </div>
+                        </div>
+
+                        <Link
+                            href="/help-support"
                             @click="closeMobileMenu"
                             class="rounded-lg px-3 py-3 text-base font-medium text-gray-700 hover:bg-gray-100"
-                            >Categories</a
-                        >
-                        <a
-                            href="#bestselling"
-                            @click="closeMobileMenu"
-                            class="rounded-lg px-3 py-3 text-base font-medium text-gray-700 hover:bg-gray-100"
-                            >Best Selling</a
-                        >
-                        <a
-                            href="#newcollection"
-                            @click="closeMobileMenu"
-                            class="rounded-lg px-3 py-3 text-base font-medium text-gray-700 hover:bg-gray-100"
-                            >New Collection</a
+                            >Help & Support</Link
                         >
                         <Link
                             href="/login"
@@ -383,8 +460,8 @@ const currentYear = new Date().getFullYear();
         </main>
 
         <!-- ============================ FOOTER ============================ -->
-        <footer class="bg-gray-900 text-gray-300">
-            <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 md:py-16 lg:px-8">
+        <footer class="bg-gray-900 text-gray-300 text-xs">
+            <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 md:py-10 lg:px-8">
                 <div class="grid grid-cols-1 gap-8 md:grid-cols-4">
                     <!-- About -->
                     <div>
@@ -412,12 +489,12 @@ const currentYear = new Date().getFullYear();
                                 Shop<span class="text-primary-600">Ease</span>
                             </span>
                         </Link>
-                        <p class="mt-4 text-sm leading-relaxed text-gray-400">
+                        <p class="mt-2.5 text-xs leading-relaxed text-gray-400">
                             Quality products delivered across Bangladesh. Shop
                             with confidence — Cash on Delivery and secure online
                             payment available.
                         </p>
-                        <div class="mt-4 flex gap-3">
+                        <div class="mt-2.5 flex gap-2">
                             <a
                                 href="#"
                                 aria-label="Facebook"
@@ -473,7 +550,7 @@ const currentYear = new Date().getFullYear();
                         >
                             Quick Links
                         </h3>
-                        <ul class="mt-4 space-y-2 text-sm">
+                        <ul class="mt-2.5 space-y-1.5 text-xs">
                             <li>
                                 <Link
                                     href="/"
@@ -489,17 +566,10 @@ const currentYear = new Date().getFullYear();
                                 >
                             </li>
                             <li>
-                                <a
-                                    href="#categories"
+                                <Link
+                                    href="/help-support"
                                     class="text-gray-400 transition hover:text-white"
-                                    >Categories</a
-                                >
-                            </li>
-                            <li>
-                                <a
-                                    href="#bestselling"
-                                    class="text-gray-400 transition hover:text-white"
-                                    >Best Selling</a
+                                    >Help & Support</Link
                                 >
                             </li>
                         </ul>
@@ -512,7 +582,7 @@ const currentYear = new Date().getFullYear();
                         >
                             Customer Service
                         </h3>
-                        <ul class="mt-4 space-y-2 text-sm">
+                        <ul class="mt-2.5 space-y-1.5 text-xs">
                             <li>
                                 <a
                                     href="#"
@@ -551,7 +621,7 @@ const currentYear = new Date().getFullYear();
                         >
                             Contact
                         </h3>
-                        <ul class="mt-4 space-y-3 text-sm">
+                        <ul class="mt-2.5 space-y-2 text-xs">
                             <li class="flex items-start gap-2">
                                 <svg
                                     class="mt-0.5 h-5 w-5 shrink-0 text-gray-400"
@@ -622,12 +692,12 @@ const currentYear = new Date().getFullYear();
 
                 <!-- Bottom bar -->
                 <div
-                    class="mt-10 flex flex-col items-center gap-4 border-t border-white/10 pt-6 sm:flex-row sm:justify-between"
+                    class="mt-6 flex flex-col items-center gap-4 border-t border-white/10 pt-4 sm:flex-row sm:justify-between"
                 >
-                    <p class="text-xs text-gray-400">
+                    <p class="text-xs text-gray-400 text-center sm:text-left">
                         © {{ currentYear }} ShopEase. All rights reserved.
                     </p>
-                    <div class="flex items-center gap-3">
+                    <div class="flex flex-wrap items-center justify-center gap-3">
                         <span class="text-xs text-gray-400">We accept</span>
                         <span
                             class="rounded bg-white/10 px-2 py-1 text-xs font-medium text-gray-200"
