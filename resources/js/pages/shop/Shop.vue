@@ -267,64 +267,18 @@ const formatPrice = (price: number) => {
                             <span class="text-gray-600">All Categories</span>
                         </label>
                         <label
+                            v-for="cat in categories"
+                            :key="cat.slug"
                             class="flex cursor-pointer items-center gap-2.5 rounded-md px-1 py-1 hover:bg-gray-50"
                         >
                             <input
                                 type="radio"
                                 v-model="selectedCategory"
-                                value="Electronics"
+                                :value="cat.slug"
                                 @change="handleFilterChange"
                                 class="h-4 w-4 text-primary-600 focus:ring-primary-600"
                             />
-                            <span class="text-gray-600">Electronics</span>
-                        </label>
-                        <label
-                            class="flex cursor-pointer items-center gap-2.5 rounded-md px-1 py-1 hover:bg-gray-50"
-                        >
-                            <input
-                                type="radio"
-                                v-model="selectedCategory"
-                                value="Fashion"
-                                @change="handleFilterChange"
-                                class="h-4 w-4 text-primary-600 focus:ring-primary-600"
-                            />
-                            <span class="text-gray-600">Fashion</span>
-                        </label>
-                        <label
-                            class="flex cursor-pointer items-center gap-2.5 rounded-md px-1 py-1 hover:bg-gray-50"
-                        >
-                            <input
-                                type="radio"
-                                v-model="selectedCategory"
-                                value="Home & Living"
-                                @change="handleFilterChange"
-                                class="h-4 w-4 text-primary-600 focus:ring-primary-600"
-                            />
-                            <span class="text-gray-600">Home &amp; Living</span>
-                        </label>
-                        <label
-                            class="flex cursor-pointer items-center gap-2.5 rounded-md px-1 py-1 hover:bg-gray-50"
-                        >
-                            <input
-                                type="radio"
-                                v-model="selectedCategory"
-                                value="Beauty"
-                                @change="handleFilterChange"
-                                class="h-4 w-4 text-primary-600 focus:ring-primary-600"
-                            />
-                            <span class="text-gray-600">Beauty</span>
-                        </label>
-                        <label
-                            class="flex cursor-pointer items-center gap-2.5 rounded-md px-1 py-1 hover:bg-gray-50"
-                        >
-                            <input
-                                type="radio"
-                                v-model="selectedCategory"
-                                value="Sports"
-                                @change="handleFilterChange"
-                                class="h-4 w-4 text-primary-600 focus:ring-primary-600"
-                            />
-                            <span class="text-gray-600">Sports</span>
+                            <span class="text-gray-600">{{ cat.name }}</span>
                         </label>
                     </div>
                 </div>
@@ -389,7 +343,7 @@ const formatPrice = (price: number) => {
                             <input
                                 type="radio"
                                 v-model="selectedPriceRange"
-                                value="6000-"
+                                value="6000+"
                                 @change="handleFilterChange"
                                 class="h-4 w-4 text-primary-600 focus:ring-primary-600"
                             />
@@ -494,68 +448,18 @@ const formatPrice = (price: number) => {
                                     >
                                 </label>
                                 <label
+                                    v-for="cat in categories"
+                                    :key="cat.slug"
                                     class="flex cursor-pointer items-center gap-2.5 rounded-md px-1 py-1 hover:bg-gray-50"
                                 >
                                     <input
                                         type="radio"
                                         v-model="selectedCategory"
-                                        value="Electronics"
+                                        :value="cat.slug"
                                         @change="handleFilterChange"
                                         class="h-4 w-4 text-primary-600 focus:ring-primary-600"
                                     />
-                                    <span class="text-gray-600"
-                                        >Electronics</span
-                                    >
-                                </label>
-                                <label
-                                    class="flex cursor-pointer items-center gap-2.5 rounded-md px-1 py-1 hover:bg-gray-50"
-                                >
-                                    <input
-                                        type="radio"
-                                        v-model="selectedCategory"
-                                        value="Fashion"
-                                        @change="handleFilterChange"
-                                        class="h-4 w-4 text-primary-600 focus:ring-primary-600"
-                                    />
-                                    <span class="text-gray-600">Fashion</span>
-                                </label>
-                                <label
-                                    class="flex cursor-pointer items-center gap-2.5 rounded-md px-1 py-1 hover:bg-gray-50"
-                                >
-                                    <input
-                                        type="radio"
-                                        v-model="selectedCategory"
-                                        value="Home & Living"
-                                        @change="handleFilterChange"
-                                        class="h-4 w-4 text-primary-600 focus:ring-primary-600"
-                                    />
-                                    <span class="text-gray-600"
-                                        >Home &amp; Living</span
-                                    >
-                                </label>
-                                <label
-                                    class="flex cursor-pointer items-center gap-2.5 rounded-md px-1 py-1 hover:bg-gray-50"
-                                >
-                                    <input
-                                        type="radio"
-                                        v-model="selectedCategory"
-                                        value="Beauty"
-                                        @change="handleFilterChange"
-                                        class="h-4 w-4 text-primary-600 focus:ring-primary-600"
-                                    />
-                                    <span class="text-gray-600">Beauty</span>
-                                </label>
-                                <label
-                                    class="flex cursor-pointer items-center gap-2.5 rounded-md px-1 py-1 hover:bg-gray-50"
-                                >
-                                    <input
-                                        type="radio"
-                                        v-model="selectedCategory"
-                                        value="Sports"
-                                        @change="handleFilterChange"
-                                        class="h-4 w-4 text-primary-600 focus:ring-primary-600"
-                                    />
-                                    <span class="text-gray-600">Sports</span>
+                                    <span class="text-gray-600">{{ cat.name }}</span>
                                 </label>
                             </div>
                         </div>
@@ -630,7 +534,7 @@ const formatPrice = (price: number) => {
                                     <input
                                         type="radio"
                                         v-model="selectedPriceRange"
-                                        value="6000-"
+                                        value="6000+"
                                         @change="handleFilterChange"
                                         class="h-4 w-4 text-primary-600 focus:ring-primary-600"
                                     />
@@ -691,9 +595,10 @@ const formatPrice = (price: number) => {
                 >
                     <p class="order-2 text-sm text-gray-600 sm:order-1">
                         Showing
-                        <span class="font-semibold text-gray-900">{{
-                            filteredProducts.length
-                        }}</span>
+                        <span v-if="products.from" class="font-semibold text-gray-900">{{ products.from }}–{{ products.to }}</span>
+                        <span v-else class="font-semibold text-gray-900">0</span>
+                        of
+                        <span class="font-semibold text-gray-900">{{ products.total }}</span>
                         products
                     </p>
                     <div
@@ -720,7 +625,7 @@ const formatPrice = (price: number) => {
                             </span>
                             <input
                                 v-model="searchQuery"
-                                @input="handleFilterChange"
+                                @input="handleSearchInput"
                                 type="search"
                                 placeholder="Search products..."
                                 class="w-full rounded-lg border border-gray-300 bg-white py-2 pr-3 pl-9 text-xs text-gray-900 transition placeholder:text-gray-400 focus:border-primary-600 focus:ring-1 focus:ring-primary-600 focus:outline-none sm:text-sm"
@@ -808,11 +713,11 @@ const formatPrice = (price: number) => {
 
                 <!-- Product grid -->
                 <div
-                    v-if="paginatedProducts.length > 0"
+                    v-if="products.data.length > 0"
                     class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 md:gap-6 lg:grid-cols-4"
                 >
                     <article
-                        v-for="p in paginatedProducts"
+                        v-for="p in products.data"
                         :key="p.id"
                         class="group flex h-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition duration-300 ease-out hover:-translate-y-1 hover:border-primary-600 hover:shadow-xl"
                     >
@@ -825,7 +730,7 @@ const formatPrice = (price: number) => {
                                 class="block h-full w-full"
                             >
                                 <img
-                                    :src="`https://images.unsplash.com/${p.img}?auto=format&fit=crop&w=600&q=70`"
+                                    :src="imageUrl(p.img)"
                                     :alt="p.name"
                                     loading="lazy"
                                     :class="[
@@ -1068,42 +973,29 @@ const formatPrice = (price: number) => {
 
                 <!-- Pagination -->
                 <nav
-                    v-if="totalPages > 1"
+                    v-if="products.last_page > 1"
                     class="mt-10 flex items-center justify-center gap-1.5"
                     aria-label="Pagination"
                 >
-                    <button
-                        type="button"
-                        :disabled="currentPage === 1"
-                        @click="changePage(currentPage - 1)"
-                        aria-label="Previous page"
-                        class="inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-lg border border-gray-300 px-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                        ‹
-                    </button>
-                    <button
-                        v-for="page in totalPages"
-                        :key="page"
-                        type="button"
-                        @click="changePage(page)"
-                        :class="[
-                            'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-lg border px-3 text-sm font-medium transition',
-                            page === currentPage
-                                ? 'border-primary-600 bg-primary-600 text-white'
-                                : 'border-gray-300 text-gray-700 hover:bg-gray-50',
-                        ]"
-                    >
-                        {{ page }}
-                    </button>
-                    <button
-                        type="button"
-                        :disabled="currentPage === totalPages"
-                        @click="changePage(currentPage + 1)"
-                        aria-label="Next page"
-                        class="inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-lg border border-gray-300 px-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                        ›
-                    </button>
+                    <template v-for="(link, index) in products.links" :key="index">
+                        <Link
+                            v-if="link.url"
+                            :href="link.url"
+                            preserve-state
+                            :class="[
+                                'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-lg border px-3 text-sm font-medium transition',
+                                link.active
+                                    ? 'border-primary-600 bg-primary-600 text-white'
+                                    : 'border-gray-300 text-gray-700 hover:bg-gray-50',
+                            ]"
+                            v-html="link.label"
+                        />
+                        <span
+                            v-else
+                            class="inline-flex h-10 min-w-[2.5rem] cursor-not-allowed items-center justify-center rounded-lg border border-gray-300 px-3 text-sm font-medium text-gray-400 opacity-40"
+                            v-html="link.label"
+                        />
+                    </template>
                 </nav>
             </div>
         </div>
