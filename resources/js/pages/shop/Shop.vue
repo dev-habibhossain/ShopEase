@@ -69,6 +69,21 @@ const inStockOnly = ref(props.filters.stock);
 const sortBy = ref(props.filters.sort || 'newest');
 const isMobileFiltersOpen = ref(false);
 
+const page = usePage();
+watch(
+    () => page.url,
+    (newUrl) => {
+        const urlObj = new URL(newUrl, window.location.origin);
+        const cat = urlObj.searchParams.get('category');
+        if (cat) {
+            selectedCategory.value = cat;
+        } else {
+            selectedCategory.value = 'all';
+        }
+    },
+    { immediate: true }
+);
+
 const openMobileFilters = () => {
     isMobileFiltersOpen.value = true;
     document.body.style.overflow = 'hidden';
