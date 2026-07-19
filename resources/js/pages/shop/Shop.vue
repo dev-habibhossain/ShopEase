@@ -61,9 +61,14 @@ const { addToCart, buyNow } = useCart();
 const { toggleWish, hasWish } = useWishlist();
 const { showToast } = useToast();
 
+const parseCategoryProp = (catProp: string | undefined): string[] => {
+    if (!catProp || catProp === 'all') return [];
+    return catProp.split(',').filter(Boolean);
+};
+
 // Local filter state — initialised from server-supplied filters
 const searchQuery = ref(props.filters.search);
-const selectedCategory = ref(props.filters.category || 'all');
+const selectedCategories = ref<string[]>(parseCategoryProp(props.filters.category));
 const selectedPriceRange = ref(props.filters.price || 'all');
 const inStockOnly = ref(props.filters.stock);
 const sortBy = ref(props.filters.sort || 'newest');
@@ -73,7 +78,7 @@ watch(
     () => props.filters,
     (newFilters) => {
         searchQuery.value = newFilters.search || '';
-        selectedCategory.value = newFilters.category || 'all';
+        selectedCategories.value = parseCategoryProp(newFilters.category);
         selectedPriceRange.value = newFilters.price || 'all';
         inStockOnly.value = newFilters.stock || false;
         sortBy.value = newFilters.sort || 'newest';
@@ -95,7 +100,7 @@ const closeMobileFilters = () => {
 const applyFilters = (overrides: Partial<Filters> = {}) => {
     const params: Record<string, string | boolean> = {
         search: searchQuery.value,
-        category: selectedCategory.value === 'all' ? '' : selectedCategory.value,
+        category: selectedCategories.value.join(','),
         price: selectedPriceRange.value === 'all' ? '' : selectedPriceRange.value,
         stock: inStockOnly.value,
         sort: sortBy.value,
@@ -129,7 +134,7 @@ const handleFilterChange = () => {
 
 const clearAllFilters = () => {
     searchQuery.value = '';
-    selectedCategory.value = 'all';
+    selectedCategories.value = [];
     selectedPriceRange.value = 'all';
     inStockOnly.value = false;
     sortBy.value = 'newest';
@@ -140,12 +145,12 @@ const clearAllFilters = () => {
 const activeChips = computed(() => {
     const chips: { label: string; clear: () => void }[] = [];
 
-    if (selectedCategory.value !== 'all' && selectedCategory.value !== '') {
-        const cat = props.categories.find((c) => c.slug === selectedCategory.value);
+    for (const slug of selectedCategories.value) {
+        const cat = props.categories.find((c) => c.slug === slug);
         chips.push({
-            label: cat?.name ?? selectedCategory.value,
+            label: cat?.name ?? slug,
             clear: () => {
-                selectedCategory.value = 'all';
+                selectedCategories.value = selectedCategories.value.filter((s) => s !== slug);
                 applyFilters();
             },
         });
@@ -271,11 +276,10 @@ const formatPrice = (price: number) => {
                             class="flex cursor-pointer items-center gap-2.5 rounded-md px-1 py-1 hover:bg-gray-50"
                         >
                             <input
-                                type="radio"
-                                v-model="selectedCategory"
-                                value="all"
-                                @change="handleFilterChange"
-                                class="h-4 w-4 text-primary-600 focus:ring-primary-600"
+                                type="checkbox"
+                                :checked="selectedCategories.length === 0"
+                                @change="selectedCategories = []; handleFilterChange()"
+                                class="h-4 w-4 rounded text-primary-600 focus:ring-primary-600"
                             />
                             <span class="text-gray-600">All Categories</span>
                         </label>
@@ -285,11 +289,11 @@ const formatPrice = (price: number) => {
                             class="flex cursor-pointer items-center gap-2.5 rounded-md px-1 py-1 hover:bg-gray-50"
                         >
                             <input
-                                type="radio"
-                                v-model="selectedCategory"
+                                type="checkbox"
+                                v-model="selectedCategories"
                                 :value="cat.slug"
                                 @change="handleFilterChange"
-                                class="h-4 w-4 text-primary-600 focus:ring-primary-600"
+                                class="h-4 w-4 rounded text-primary-600 focus:ring-primary-600"
                             />
                             <span class="text-gray-600">{{ cat.name }}</span>
                         </label>
@@ -450,11 +454,10 @@ const formatPrice = (price: number) => {
                                     class="flex cursor-pointer items-center gap-2.5 rounded-md px-1 py-1 hover:bg-gray-50"
                                 >
                                     <input
-                                        type="radio"
-                                        v-model="selectedCategory"
-                                        value="all"
-                                        @change="handleFilterChange"
-                                        class="h-4 w-4 text-primary-600 focus:ring-primary-600"
+                                        type="checkbox"
+                                        :checked="selectedCategories.length === 0"
+                                        @change="selectedCategories = []; handleFilterChange()"
+                                        class="h-4 w-4 rounded text-primary-600 focus:ring-primary-600"
                                     />
                                     <span class="text-gray-600"
                                         >All Categories</span
@@ -466,11 +469,11 @@ const formatPrice = (price: number) => {
                                     class="flex cursor-pointer items-center gap-2.5 rounded-md px-1 py-1 hover:bg-gray-50"
                                 >
                                     <input
-                                        type="radio"
-                                        v-model="selectedCategory"
+                                        type="checkbox"
+                                        v-model="selectedCategories"
                                         :value="cat.slug"
                                         @change="handleFilterChange"
-                                        class="h-4 w-4 text-primary-600 focus:ring-primary-600"
+                                        class="h-4 w-4 rounded text-primary-600 focus:ring-primary-600"
                                     />
                                     <span class="text-gray-600">{{ cat.name }}</span>
                                 </label>
