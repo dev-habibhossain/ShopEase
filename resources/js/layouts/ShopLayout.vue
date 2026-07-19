@@ -10,11 +10,16 @@ const {
     isCartOpen,
     cartQty,
     cartSubtotal,
+    appliedCoupon,
+    couponDiscount,
+    cartTotal,
     closeCart,
     openCart,
     incrementQty,
     decrementQty,
     removeFromCart,
+    applyCoupon,
+    removeCoupon,
 } = useCart();
 const { wishCount } = useWishlist();
 const { toastMessage, isToastVisible } = useToast();
@@ -22,6 +27,20 @@ const { toastMessage, isToastVisible } = useToast();
 const isMobileMenuOpen = ref(false);
 const isCategoriesDropdownOpen = ref(false);
 const isMobileCategoriesOpen = ref(false);
+
+const drawerCouponInput = ref('');
+const drawerCouponMessage = ref<{ type: 'success' | 'error'; text: string } | null>(null);
+
+const handleDrawerCouponApply = () => {
+    const res = applyCoupon(drawerCouponInput.value);
+    drawerCouponMessage.value = {
+        type: res.success ? 'success' : 'error',
+        text: res.message,
+    };
+    if (res.success) {
+        drawerCouponInput.value = '';
+    }
+};
 
 const formatPrice = (price: number) => {
     return '৳ ' + Number(price).toLocaleString('en-BD');
@@ -284,9 +303,8 @@ const currentYear = new Date().getFullYear();
                                 {{ wishCount }}
                             </span>
                         </Link>
-                        <button
-                            @click="openCart"
-                            type="button"
+                        <Link
+                            href="/cart"
                             :aria-label="`Cart, ${cartQty} items`"
                             class="relative inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 focus:ring-2 focus:ring-primary-600 focus:outline-none"
                         >
@@ -308,7 +326,7 @@ const currentYear = new Date().getFullYear();
                             >
                                 {{ cartQty }}
                             </span>
-                        </button>
+                        </Link>
                     </div>
                 </div>
             </div>
@@ -900,31 +918,69 @@ const currentYear = new Date().getFullYear();
                 <!-- Footer -->
                 <div
                     v-if="cart.length > 0"
-                    class="shrink-0 border-t border-gray-200 p-5"
+                    class="shrink-0 border-t border-gray-200 p-5 space-y-3"
                 >
-                    <div class="mb-1 flex items-center justify-between">
-                        <span class="text-sm text-gray-500">Subtotal</span>
-                        <span class="text-lg font-bold text-gray-900">{{
-                            formatPrice(cartSubtotal)
-                        }}</span>
+                    <!-- Coupon input section in drawer -->
+                    <div class="rounded-xl border border-gray-200 bg-primary-50/50 p-3">
+                        <div v-if="appliedCoupon" class="flex items-center justify-between text-xs font-semibold text-primary-900">
+                            <div class="flex items-center gap-1.5 min-w-0">
+                                <span class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary-600 text-white">
+                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </span>
+                                <span class="truncate">Coupon <strong>{{ appliedCoupon.code }}</strong> (-{{ formatPrice(couponDiscount) }})</span>
+                            </div>
+                            <button @click="removeCoupon" type="button" class="shrink-0 text-xs font-semibold text-red-600 hover:underline">Remove</button>
+                        </div>
+                        <form v-else @submit.prevent="handleDrawerCouponApply" class="flex items-center gap-2">
+                            <input
+                                v-model="drawerCouponInput"
+                                type="text"
+                                placeholder="Coupon code"
+                                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium uppercase text-gray-900 placeholder:normal-case placeholder:text-gray-400 focus:border-primary-600 focus:ring-2 focus:ring-primary-600 focus:outline-none"
+                            />
+                            <button
+                                type="submit"
+                                class="rounded-lg bg-primary-600 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-primary-700 shrink-0 shadow-xs"
+                            >
+                                Apply
+                            </button>
+                        </form>
+                        <p v-if="drawerCouponMessage" :class="drawerCouponMessage.type === 'success' ? 'text-green-600' : 'text-red-600'" class="mt-1.5 text-[11px] font-medium">
+                            {{ drawerCouponMessage.text }}
+                        </p>
                     </div>
-                    <p class="mb-4 text-xs text-gray-400">
-                        Delivery calculated at checkout.
-                    </p>
-                    <div class="grid grid-cols-2 gap-3">
+
+                    <div class="space-y-1 text-xs">
+                        <div class="flex justify-between text-gray-600">
+                            <span>Subtotal</span>
+                            <span>{{ formatPrice(cartSubtotal) }}</span>
+                        </div>
+                        <div v-if="couponDiscount > 0" class="flex justify-between text-green-600 font-medium">
+                            <span>Discount</span>
+                            <span>-{{ formatPrice(couponDiscount) }}</span>
+                        </div>
+                        <div class="flex justify-between text-sm font-bold text-gray-900 pt-1 border-t border-gray-200">
+                            <span>Total</span>
+                            <span>{{ formatPrice(cartTotal) }}</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2.5 pt-1">
                         <Link
                             href="/cart"
                             @click="closeCart"
-                            class="rounded-lg border border-gray-300 px-4 py-2.5 text-center text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                            class="rounded-lg border border-gray-300 px-3 py-2.5 text-center text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
                         >
-                            View Cart
+                            View Cart Page
                         </Link>
                         <Link
                             href="/checkout"
                             @click="closeCart"
-                            class="rounded-lg bg-primary-600 px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-primary-700"
+                            class="rounded-lg bg-primary-600 px-3 py-2.5 text-center text-xs font-semibold text-white transition hover:bg-primary-700"
                         >
-                            Checkout
+                            Proceed to Checkout
                         </Link>
                     </div>
                 </div>

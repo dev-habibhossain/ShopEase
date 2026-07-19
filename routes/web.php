@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Storefront\CartController;
 use App\Http\Controllers\Storefront\CheckoutController;
 use App\Http\Controllers\Storefront\HelpSupportController;
 use App\Http\Controllers\Storefront\HomeController;
@@ -11,6 +12,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', HomeController::class)->name('home');
 Route::get('product-details/{slug}', ProductDetailsController::class)->name('product.details');
 Route::get('shop', ShopController::class)->name('shop');
+Route::get('cart', CartController::class)->name('cart');
 Route::get('checkout', CheckoutController::class)->name('checkout');
 Route::get('wishlist', WishlistController::class)->name('wishlist');
 Route::get('help-support', HelpSupportController::class)->name('help.support');
