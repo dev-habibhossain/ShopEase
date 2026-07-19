@@ -42,9 +42,10 @@ class ShopController extends Controller
             $query->where('name', 'like', "%{$search}%");
         }
 
-        // Category filter
-        if ($categorySlug !== '' && $categorySlug !== 'all') {
-            $query->whereHas('category', fn ($q) => $q->where('slug', $categorySlug));
+        // Category filter (supports multiple comma-separated category slugs)
+        $categorySlugs = array_values(array_filter(explode(',', $categorySlug), fn ($s) => $s !== '' && $s !== 'all'));
+        if (! empty($categorySlugs)) {
+            $query->whereHas('category', fn ($q) => $q->whereIn('slug', $categorySlugs));
         }
 
         // Price range filter
@@ -99,7 +100,7 @@ class ShopController extends Controller
             'categories' => $categories,
             'filters' => [
                 'search' => $search,
-                'category' => $categorySlug,
+                'category' => implode(',', $categorySlugs),
                 'price' => $priceRange,
                 'stock' => $stockOnly,
                 'sort' => $sortBy,
