@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
+import { shop } from '@/routes';
 import { useCart } from '@/composables/useCart';
 import { useWishlist } from '@/composables/useWishlist';
 import { useToast } from '@/composables/useToast';
@@ -97,7 +98,7 @@ const applyFilters = (overrides: Partial<Filters> = {}) => {
         }
     }
 
-    router.get(route('shop'), clean, {
+    router.get(shop.url(), clean, {
         preserveState: true,
         replace: true,
     });
@@ -120,7 +121,7 @@ const clearAllFilters = () => {
     selectedPriceRange.value = 'all';
     inStockOnly.value = false;
     sortBy.value = 'newest';
-    router.get(route('shop'), {}, { preserveState: false, replace: true });
+    router.get(shop.url(), {}, { preserveState: false, replace: true });
 };
 
 // Active filter chips for display
