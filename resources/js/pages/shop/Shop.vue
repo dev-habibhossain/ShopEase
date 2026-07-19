@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { shop } from '@/routes';
 import { useCart } from '@/composables/useCart';
@@ -69,19 +69,16 @@ const inStockOnly = ref(props.filters.stock);
 const sortBy = ref(props.filters.sort || 'newest');
 const isMobileFiltersOpen = ref(false);
 
-const page = usePage();
 watch(
-    () => page.url,
-    (newUrl) => {
-        const urlObj = new URL(newUrl, window.location.origin);
-        const cat = urlObj.searchParams.get('category');
-        if (cat) {
-            selectedCategory.value = cat;
-        } else {
-            selectedCategory.value = 'all';
-        }
+    () => props.filters,
+    (newFilters) => {
+        searchQuery.value = newFilters.search || '';
+        selectedCategory.value = newFilters.category || 'all';
+        selectedPriceRange.value = newFilters.price || 'all';
+        inStockOnly.value = newFilters.stock || false;
+        sortBy.value = newFilters.sort || 'newest';
     },
-    { immediate: true }
+    { deep: true }
 );
 
 const openMobileFilters = () => {
@@ -989,30 +986,31 @@ const formatPrice = (price: number) => {
 
                 <!-- Pagination -->
                 <nav
-                    v-if="products.last_page > 1"
-                    class="mt-10 flex items-center justify-center gap-1.5"
-                    aria-label="Pagination"
-                >
-                    <template v-for="(link, index) in products.links" :key="index">
-                        <Link
-                            v-if="link.url"
-                            :href="link.url"
-                            preserve-state
-                            :class="[
-                                'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-lg border px-3 text-sm font-medium transition',
-                                link.active
-                                    ? 'border-primary-600 bg-primary-600 text-white'
-                                    : 'border-gray-300 text-gray-700 hover:bg-gray-50',
-                            ]"
-                            v-html="link.label"
-                        />
-                        <span
-                            v-else
-                            class="inline-flex h-10 min-w-[2.5rem] cursor-not-allowed items-center justify-center rounded-lg border border-gray-300 px-3 text-sm font-medium text-gray-400 opacity-40"
-                            v-html="link.label"
-                        />
-                    </template>
-                </nav>
+    v-if="products.last_page > 1"
+    class="mt-10 flex items-center justify-center gap-1.5"
+    aria-label="Pagination"
+>
+    <template v-for="(link, index) in products.links" :key="index">
+        <Link
+            v-if="link.url"
+            :href="link.url"
+            preserve-state
+            :class="[
+                'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-lg border px-3 text-sm font-medium transition',
+                link.active
+                    ? 'border-primary-600 bg-primary-600 text-white'
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-50',
+            ]"
+        >
+            <span v-html="link.label"></span>
+        </Link>
+        <span
+            v-else
+            class="inline-flex h-10 min-w-[2.5rem] cursor-not-allowed items-center justify-center rounded-lg border border-gray-300 px-3 text-sm font-medium text-gray-400 opacity-40"
+            v-html="link.label"
+        />
+    </template>
+</nav>
             </div>
         </div>
     </div>
