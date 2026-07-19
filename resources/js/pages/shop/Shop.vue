@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { shop } from '@/routes';
 import { useCart } from '@/composables/useCart';
@@ -69,19 +69,16 @@ const inStockOnly = ref(props.filters.stock);
 const sortBy = ref(props.filters.sort || 'newest');
 const isMobileFiltersOpen = ref(false);
 
-const page = usePage();
 watch(
-    () => page.url,
-    (newUrl) => {
-        const urlObj = new URL(newUrl, window.location.origin);
-        const cat = urlObj.searchParams.get('category');
-        if (cat) {
-            selectedCategory.value = cat;
-        } else {
-            selectedCategory.value = 'all';
-        }
+    () => props.filters,
+    (newFilters) => {
+        searchQuery.value = newFilters.search || '';
+        selectedCategory.value = newFilters.category || 'all';
+        selectedPriceRange.value = newFilters.price || 'all';
+        inStockOnly.value = newFilters.stock || false;
+        sortBy.value = newFilters.sort || 'newest';
     },
-    { immediate: true }
+    { deep: true }
 );
 
 const openMobileFilters = () => {
