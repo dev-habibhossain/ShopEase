@@ -1,143 +1,140 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
-import { Star, CheckCircle2, XCircle, Trash2, MessageSquare } from '@lucide/vue';
+import { Search, Star, CheckCircle, Trash2 } from '@lucide/vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
+
+const props = defineProps<{
+    reviews: {
+        data: Array<{
+            id: number;
+            rating: number;
+            comment?: string;
+            is_approved: boolean;
+            created_at: string;
+            user?: { name: string; email: string };
+            product?: { name: string };
+        }>;
+    };
+    filters: { search?: string; status?: string };
+}>();
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
     { title: 'Reviews', href: '/dashboard/reviews' },
 ];
 
-const reviews = [
-    {
-        id: 1,
-        customer: 'Rina Akter',
-        city: 'Dhaka',
-        product: 'Wireless Noise-Cancelling Headphones',
-        rating: 5,
-        comment: 'Ordered a phone case and headphones. Arrived in two days! Cash on delivery made it an easy purchase.',
-        date: 'Jul 28, 2026',
-        status: 'Approved',
-    },
-    {
-        id: 2,
-        customer: 'Tanvir Hasan',
-        city: 'Chattogram',
-        product: 'Smart Fitness Watch Series 6',
-        rating: 5,
-        comment: 'Great prices on electronics and the size guide on clothing actually matches! Will keep shopping here.',
-        date: 'Jul 26, 2026',
-        status: 'Approved',
-    },
-    {
-        id: 3,
-        customer: 'Nusrat Jahan',
-        city: 'Sylhet',
-        product: 'Classic Leather Sneakers',
-        rating: 4,
-        comment: 'Customer support helped me update delivery address right after placing order. Very trustworthy store.',
-        date: 'Jul 24, 2026',
-        status: 'Approved',
-    },
-    {
-        id: 4,
-        customer: 'Shafiqur Rahman',
-        city: 'Rajshahi',
-        product: 'Minimalist Backpack 20L',
-        rating: 5,
-        comment: 'Fabric quality is outstanding. Super comfortable bag for daily university commute.',
-        date: 'Jul 22, 2026',
-        status: 'Pending',
-    },
-];
+const search = ref(props.filters.search || '');
+const selectedStatus = ref(props.filters.status || '');
+
+const applyFilters = () => {
+    router.get('/dashboard/reviews', {
+        search: search.value,
+        status: selectedStatus.value,
+    }, { preserveState: true, replace: true });
+};
+
+const toggleApproval = (review: any) => {
+    router.put(`/dashboard/reviews/${review.id}`, {
+        is_approved: !review.is_approved,
+    });
+};
+
+const deleteReview = (id: number) => {
+    if (confirm('Are you sure you want to delete this review?')) {
+        router.delete(`/dashboard/reviews/${id}`);
+    }
+};
 </script>
 
 <template>
-    <Head title="Reviews — ShopEase Admin" />
+    <Head title="Customer Reviews — ShopEase Admin" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-            <!-- Header -->
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8 bg-white min-h-screen">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-200 pb-6">
                 <div>
-                    <h1 class="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">Customer Reviews</h1>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-neutral-400">
-                        Monitor ratings and customer feedback for storefront products.
-                    </p>
+                    <h1 class="text-2xl font-bold tracking-tight text-gray-900">Product Reviews Moderation</h1>
+                    <p class="text-sm text-gray-500 mt-1">Approve, decline, or remove user-submitted product ratings and comments</p>
                 </div>
             </div>
 
-            <!-- Stats Bar -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div class="p-4 rounded-xl border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
-                    <span class="text-xs font-semibold text-gray-400">Average Rating</span>
-                    <p class="mt-2 text-xl font-extrabold text-amber-500 flex items-center gap-1">
-                        4.8 <Star class="w-5 h-5 fill-current" />
-                    </p>
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50/50 p-4">
+                <div class="relative w-full sm:w-80">
+                    <Search class="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                    <input
+                        v-model="search"
+                        @keyup.enter="applyFilters"
+                        type="text"
+                        placeholder="Search product or reviewer..."
+                        class="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-4 text-xs text-gray-900 focus:border-violet-600 focus:outline-none"
+                    />
                 </div>
-                <div class="p-4 rounded-xl border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
-                    <span class="text-xs font-semibold text-gray-400">Total Reviews</span>
-                    <p class="mt-2 text-xl font-extrabold text-gray-900 dark:text-white">652</p>
-                </div>
-                <div class="p-4 rounded-xl border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
-                    <span class="text-xs font-semibold text-gray-400">Pending Approval</span>
-                    <p class="mt-2 text-xl font-extrabold text-amber-600">4</p>
-                </div>
-                <div class="p-4 rounded-xl border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
-                    <span class="text-xs font-semibold text-gray-400">5-Star Satisfaction</span>
-                    <p class="mt-2 text-xl font-extrabold text-emerald-600">82%</p>
-                </div>
+
+                <select v-model="selectedStatus" @change="applyFilters" class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700">
+                    <option value="">All Statuses</option>
+                    <option value="approved">Approved</option>
+                    <option value="pending">Pending Approval</option>
+                </select>
             </div>
 
-            <!-- Table -->
-            <div class="rounded-2xl border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 overflow-hidden shadow-xs">
+            <div class="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-xs">
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm text-gray-600 dark:text-neutral-300">
-                        <thead class="bg-gray-50 dark:bg-neutral-800/50 text-xs font-semibold uppercase text-gray-500 dark:text-neutral-400">
+                    <table class="w-full text-left text-sm text-gray-600">
+                        <thead class="bg-gray-50 text-xs font-semibold uppercase tracking-wider text-gray-500 border-b border-gray-200">
                             <tr>
-                                <th class="px-5 py-3.5">Rating & Product</th>
-                                <th class="px-5 py-3.5">Review Comment</th>
-                                <th class="px-5 py-3.5">Customer</th>
+                                <th class="px-5 py-3.5">Reviewer</th>
+                                <th class="px-5 py-3.5">Product</th>
+                                <th class="px-5 py-3.5">Rating</th>
+                                <th class="px-5 py-3.5">Comment</th>
                                 <th class="px-5 py-3.5">Status</th>
                                 <th class="px-5 py-3.5 text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100 dark:divide-neutral-800">
-                            <tr v-for="review in reviews" :key="review.id" class="hover:bg-gray-50/50 dark:hover:bg-neutral-800/30 transition">
-                                <td class="px-5 py-4 whitespace-nowrap">
-                                    <div class="flex items-center gap-1 text-amber-500 mb-1">
-                                        <Star v-for="i in review.rating" :key="i" class="w-3.5 h-3.5 fill-current" />
+                        <tbody class="divide-y divide-gray-200">
+                            <tr v-for="rev in reviews.data" :key="rev.id" class="hover:bg-gray-50/80 transition">
+                                <td class="px-5 py-4 font-bold text-gray-900 text-xs sm:text-sm">
+                                    {{ rev.user?.name || 'Anonymous User' }}
+                                </td>
+                                <td class="px-5 py-4 text-xs font-semibold text-gray-700">
+                                    {{ rev.product?.name || 'Deleted Product' }}
+                                </td>
+                                <td class="px-5 py-4">
+                                    <div class="flex items-center gap-1 text-amber-500 font-bold text-xs">
+                                        <Star class="w-4 h-4 fill-amber-400 text-amber-400" />
+                                        {{ rev.rating }}.0
                                     </div>
-                                    <p class="font-bold text-gray-900 dark:text-white max-w-xs truncate text-xs">{{ review.product }}</p>
                                 </td>
-                                <td class="px-5 py-4 max-w-md">
-                                    <p class="text-xs text-gray-700 dark:text-neutral-300 leading-relaxed font-medium">"{{ review.comment }}"</p>
-                                    <span class="text-[10px] text-gray-400 block mt-1">{{ review.date }}</span>
+                                <td class="px-5 py-4 text-xs text-gray-600 max-w-xs truncate">
+                                    {{ rev.comment || 'No comment provided' }}
                                 </td>
-                                <td class="px-5 py-4 whitespace-nowrap">
-                                    <p class="font-bold text-gray-900 dark:text-white text-xs">{{ review.customer }}</p>
-                                    <p class="text-xs text-gray-400">{{ review.city }}</p>
-                                </td>
-                                <td class="px-5 py-4 whitespace-nowrap">
-                                    <span :class="[
-                                        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold',
-                                        review.status === 'Approved' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
-                                    ]">
-                                        {{ review.status }}
+                                <td class="px-5 py-4">
+                                    <span :class="['inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold', rev.is_approved ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700']">
+                                        {{ rev.is_approved ? 'Approved' : 'Pending' }}
                                     </span>
                                 </td>
-                                <td class="px-5 py-4 text-right whitespace-nowrap">
-                                    <div class="flex items-center justify-end gap-1.5">
-                                        <button v-if="review.status === 'Pending'" title="Approve" class="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition">
-                                            <CheckCircle2 class="w-4 h-4" />
+                                <td class="px-5 py-4 text-right">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <button
+                                            @click="toggleApproval(rev)"
+                                            type="button"
+                                            :class="['inline-flex h-8 px-2.5 items-center justify-center rounded-lg text-xs font-semibold border transition', rev.is_approved ? 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100' : 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100']"
+                                        >
+                                            <CheckCircle class="w-3.5 h-3.5 mr-1" /> {{ rev.is_approved ? 'Unapprove' : 'Approve' }}
                                         </button>
-                                        <button title="Delete" class="p-1.5 rounded-lg border border-gray-200 dark:border-neutral-700 hover:bg-red-50 text-red-600 transition">
-                                            <Trash2 class="w-4 h-4" />
+                                        <button
+                                            @click="deleteReview(rev.id)"
+                                            type="button"
+                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 text-red-600 hover:bg-red-600 hover:text-white transition"
+                                        >
+                                            <Trash2 class="w-3.5 h-3.5" />
                                         </button>
                                     </div>
                                 </td>
+                            </tr>
+                            <tr v-if="!reviews.data.length">
+                                <td colspan="6" class="px-5 py-8 text-center text-xs text-gray-500">No product reviews found.</td>
                             </tr>
                         </tbody>
                     </table>

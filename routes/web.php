@@ -1,5 +1,14 @@
 <?php
 
+use App\Http\Controllers\Admin\CategoryManagementController;
+use App\Http\Controllers\Admin\CouponManagementController;
+use App\Http\Controllers\Admin\CustomerManagementController;
+use App\Http\Controllers\Admin\DashboardOverviewController;
+use App\Http\Controllers\Admin\HeroSlideManagementController;
+use App\Http\Controllers\Admin\OrderManagementController;
+use App\Http\Controllers\Admin\PaymentManagementController;
+use App\Http\Controllers\Admin\ProductManagementController;
+use App\Http\Controllers\Admin\ReviewManagementController;
 use App\Http\Controllers\Storefront\CartController;
 use App\Http\Controllers\Storefront\CheckoutController;
 use App\Http\Controllers\Storefront\HelpSupportController;
@@ -18,18 +27,19 @@ Route::get('wishlist', WishlistController::class)->name('wishlist');
 Route::get('help-support', HelpSupportController::class)->name('help.support');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'Dashboard')->name('dashboard');
+    Route::get('dashboard', DashboardOverviewController::class)->name('dashboard');
 
     Route::prefix('dashboard')->name('dashboard.')->group(function () {
-        Route::inertia('overview', 'Dashboard')->name('overview');
-        Route::inertia('products', 'Dashboard/Products')->name('products');
-        Route::inertia('categories', 'Dashboard/Categories')->name('categories');
-        Route::inertia('orders', 'Dashboard/Orders')->name('orders');
-        Route::inertia('customers', 'Dashboard/Customers')->name('customers');
-        Route::inertia('coupons', 'Dashboard/Coupons')->name('coupons');
-        Route::inertia('reviews', 'Dashboard/Reviews')->name('reviews');
-        Route::inertia('hero-slides', 'Dashboard/HeroSlides')->name('hero-slides');
-        Route::inertia('payments', 'Dashboard/Payments')->name('payments');
+        Route::get('overview', DashboardOverviewController::class)->name('overview');
+
+        Route::resource('products', ProductManagementController::class)->except(['create', 'edit']);
+        Route::resource('categories', CategoryManagementController::class)->except(['create', 'edit']);
+        Route::resource('orders', OrderManagementController::class)->only(['index', 'show', 'update']);
+        Route::resource('customers', CustomerManagementController::class)->only(['index', 'show']);
+        Route::resource('coupons', CouponManagementController::class)->except(['create', 'edit']);
+        Route::resource('reviews', ReviewManagementController::class)->only(['index', 'update', 'destroy']);
+        Route::resource('hero-slides', HeroSlideManagementController::class)->except(['create', 'edit']);
+        Route::get('payments', [PaymentManagementController::class, 'index'])->name('payments.index');
     });
 });
 
