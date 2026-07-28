@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
-import { Search, Users } from '@lucide/vue';
+import { Search } from '@lucide/vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 
@@ -11,6 +11,7 @@ const props = defineProps<{
             id: number;
             name: string;
             email: string;
+            avatar?: string | null;
             orders_count?: number;
             orders_sum_total?: number;
             created_at: string;
@@ -75,8 +76,9 @@ const applyFilters = () => {
                             <tr v-for="customer in customers.data" :key="customer.id" class="hover:bg-gray-50/80 transition">
                                 <td class="px-5 py-4 font-bold text-gray-900 text-xs sm:text-sm">
                                     <div class="flex items-center gap-3">
-                                        <div class="h-9 w-9 rounded-full bg-violet-600 text-white flex items-center justify-center font-bold text-xs uppercase">
-                                            {{ customer.name ? customer.name.charAt(0) : 'U' }}
+                                        <div class="h-10 w-10 shrink-0 rounded-full overflow-hidden border border-violet-200 bg-violet-50 text-violet-700 flex items-center justify-center font-bold text-xs uppercase shadow-xs">
+                                            <img v-if="customer.avatar" :src="customer.avatar" :alt="customer.name" class="h-full w-full object-cover" />
+                                            <span v-else>{{ customer.name ? customer.name.charAt(0) : 'U' }}</span>
                                         </div>
                                         <div>
                                             <p class="font-bold text-gray-900 text-xs sm:text-sm">{{ customer.name }}</p>

@@ -15,19 +15,27 @@ class CreateNewUser implements CreatesNewUsers
     /**
      * Validate and create a newly registered user.
      *
-     * @param  array<string, string>  $input
+     * @param  array<string, mixed>  $input
      */
     public function create(array $input): User
     {
         Validator::make($input, [
             ...$this->profileRules(),
             'password' => $this->passwordRules(),
+            'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
         ])->validate();
+
+        $avatarPath = null;
+        if (request()->hasFile('avatar')) {
+            $path = request()->file('avatar')->store('avatars', 'public');
+            $avatarPath = '/storage/'.$path;
+        }
 
         return User::create([
             'name' => $input['name'],
             'email' => $input['email'],
             'password' => $input['password'],
+            'avatar' => $avatarPath,
         ]);
     }
 }
