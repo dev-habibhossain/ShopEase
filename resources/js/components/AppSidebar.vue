@@ -112,7 +112,7 @@ const navGroups: NavGroup[] = [
 </script>
 
 <template>
-    <Sidebar collapsible="icon" variant="inset">
+    <Sidebar collapsible="none" variant="inset">
         <SidebarHeader>
             <SidebarMenu>
                 <SidebarMenuItem>
