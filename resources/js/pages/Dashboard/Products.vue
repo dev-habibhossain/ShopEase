@@ -8,7 +8,8 @@ import {
     Edit3,
     Trash2,
     X,
-    CheckCircle2,
+    Upload,
+    Image as ImageIcon,
 } from '@lucide/vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
@@ -30,6 +31,7 @@ const props = defineProps<{
             is_active: boolean;
             sold_count: number;
             category?: { id: number; name: string };
+            images?: Array<{ id: number; image_path: string; is_primary: boolean }>;
         }>;
         links: Array<{ url: string | null; label: string; active: boolean }>;
     };
@@ -62,6 +64,8 @@ watch([selectedCategory, selectedStock], () => {
 const isModalOpen = ref(false);
 const isEditing = ref(false);
 const editingProductId = ref<number | null>(null);
+const imagePreview = ref<string | null>(null);
+const imageInputType = ref<'file' | 'url'>('file');
 
 const form = useForm({
     category_id: props.categories[0]?.id || '',
@@ -74,13 +78,27 @@ const form = useForm({
     is_featured: false,
     is_best_seller: false,
     is_active: true,
+    image: null as File | null,
+    image_url: '',
+    _method: 'POST',
 });
+
+const handleFileChange = (e: Event) => {
+    const target = e.target as HTMLInputElement;
+    if (target.files && target.files[0]) {
+        const file = target.files[0];
+        form.image = file;
+        imagePreview.value = URL.createObjectURL(file);
+    }
+};
 
 const openCreateModal = () => {
     isEditing.value = false;
     editingProductId.value = null;
+    imagePreview.value = null;
     form.reset();
     form.clearErrors();
+    form._method = 'POST';
     form.category_id = props.categories[0]?.id || '';
     isModalOpen.value = true;
 };
@@ -89,6 +107,7 @@ const openEditModal = (product: any) => {
     isEditing.value = true;
     editingProductId.value = product.id;
     form.clearErrors();
+    form._method = 'PUT';
     form.category_id = product.category_id;
     form.name = product.name;
     form.short_description = product.short_description || '';
@@ -99,17 +118,29 @@ const openEditModal = (product: any) => {
     form.is_featured = Boolean(product.is_featured);
     form.is_best_seller = Boolean(product.is_best_seller);
     form.is_active = Boolean(product.is_active);
+    form.image = null;
+
+    const primaryImg = product.images?.find((img: any) => img.is_primary) || product.images?.[0];
+    if (primaryImg) {
+        imagePreview.value = primaryImg.image_path;
+        form.image_url = primaryImg.image_path;
+    } else {
+        imagePreview.value = null;
+        form.image_url = '';
+    }
+
     isModalOpen.value = true;
 };
 
 const closeModal = () => {
     isModalOpen.value = false;
     form.reset();
+    imagePreview.value = null;
 };
 
 const submitForm = () => {
     if (isEditing.value && editingProductId.value) {
-        form.put(`/dashboard/products/${editingProductId.value}`, {
+        form.post(`/dashboard/products/${editingProductId.value}`, {
             onSuccess: () => closeModal(),
         });
     } else {
@@ -124,6 +155,11 @@ const deleteProduct = (id: number) => {
         router.delete(`/dashboard/products/${id}`);
     }
 };
+
+const getProductThumbnail = (product: any) => {
+    const primaryImg = product.images?.find((img: any) => img.is_primary) || product.images?.[0];
+    return primaryImg?.image_path || null;
+};
 </script>
 
 <template>
@@ -135,7 +171,7 @@ const deleteProduct = (id: number) => {
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-200 pb-6">
                 <div>
                     <h1 class="text-2xl font-bold tracking-tight text-gray-900">Products Catalog</h1>
-                    <p class="text-sm text-gray-500 mt-1">Manage storefront inventory, prices, categories, and stock availability</p>
+                    <p class="text-sm text-gray-500 mt-1">Manage storefront inventory, images, prices, categories, and stock availability</p>
                 </div>
                 <button
                     @click="openCreateModal"
@@ -197,8 +233,14 @@ const deleteProduct = (id: number) => {
                             <tr v-for="product in products.data" :key="product.id" class="hover:bg-gray-50/80 transition">
                                 <td class="px-5 py-4">
                                     <div class="flex items-center gap-3">
-                                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-50 font-bold text-violet-600 text-sm">
-                                            <Package class="w-5 h-5" />
+                                        <div class="h-12 w-12 shrink-0 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center">
+                                            <img
+                                                v-if="getProductThumbnail(product)"
+                                                :src="getProductThumbnail(product)"
+                                                :alt="product.name"
+                                                class="h-full w-full object-cover"
+                                            />
+                                            <Package v-else class="w-6 h-6 text-violet-600" />
                                         </div>
                                         <div>
                                             <p class="font-bold text-gray-900 text-xs sm:text-sm">{{ product.name }}</p>
@@ -265,14 +307,71 @@ const deleteProduct = (id: number) => {
         </div>
 
         <!-- Add / Edit Modal -->
-        <div v-if="isModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-            <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border border-gray-200">
+        <div v-if="isModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 overflow-y-auto">
+            <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border border-gray-200 my-8">
                 <div class="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
                     <h3 class="text-base font-bold text-gray-900">{{ isEditing ? 'Edit Product' : 'Add New Product' }}</h3>
                     <button @click="closeModal" class="text-gray-400 hover:text-gray-600"><X class="w-5 h-5" /></button>
                 </div>
 
                 <form @submit.prevent="submitForm" class="space-y-4">
+                    <!-- Image Upload Section -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-2">Product Image</label>
+                        
+                        <div class="flex items-center gap-3 mb-3">
+                            <button
+                                type="button"
+                                @click="imageInputType = 'file'"
+                                :class="['px-3 py-1.5 rounded-md text-xs font-bold transition', imageInputType === 'file' ? 'bg-violet-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200']"
+                            >
+                                <Upload class="w-3.5 h-3.5 inline mr-1" /> Upload File
+                            </button>
+                            <button
+                                type="button"
+                                @click="imageInputType = 'url'"
+                                :class="['px-3 py-1.5 rounded-md text-xs font-bold transition', imageInputType === 'url' ? 'bg-violet-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200']"
+                            >
+                                <ImageIcon class="w-3.5 h-3.5 inline mr-1" /> Image URL
+                            </button>
+                        </div>
+
+                        <!-- File Input -->
+                        <div v-if="imageInputType === 'file'" class="flex items-center justify-center w-full">
+                            <label class="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition">
+                                <div class="flex flex-col items-center justify-center pt-3 pb-3">
+                                    <Upload class="w-6 h-6 text-gray-400 mb-1" />
+                                    <p class="text-xs text-gray-500 font-semibold">Click to upload product image</p>
+                                    <p class="text-[10px] text-gray-400">PNG, JPG, WEBP (Max 4MB)</p>
+                                </div>
+                                <input type="file" accept="image/*" class="hidden" @change="handleFileChange" />
+                            </label>
+                        </div>
+
+                        <!-- URL Input -->
+                        <div v-else>
+                            <input
+                                v-model="form.image_url"
+                                type="url"
+                                class="w-full rounded-lg border border-gray-300 p-2.5 text-xs focus:border-violet-600 focus:outline-none"
+                                placeholder="https://images.unsplash.com/..."
+                                @input="imagePreview = form.image_url"
+                            />
+                        </div>
+
+                        <!-- Image Preview Box -->
+                        <div v-if="imagePreview" class="mt-3 flex items-center gap-3 p-2 rounded-lg border border-gray-200 bg-gray-50">
+                            <img :src="imagePreview" class="w-14 h-14 object-cover rounded-md border border-gray-300" />
+                            <div class="min-w-0 flex-1">
+                                <p class="text-xs font-bold text-gray-800">Image Selected</p>
+                                <p class="text-[10px] text-emerald-600 font-semibold">Ready for upload</p>
+                            </div>
+                            <button type="button" @click="imagePreview = null; form.image = null; form.image_url = ''" class="text-xs text-red-600 hover:underline">
+                                Remove
+                            </button>
+                        </div>
+                    </div>
+
                     <div>
                         <label class="block text-xs font-semibold text-gray-700 mb-1">Product Name</label>
                         <input
@@ -280,7 +379,7 @@ const deleteProduct = (id: number) => {
                             type="text"
                             required
                             class="w-full rounded-lg border border-gray-300 p-2.5 text-xs focus:border-violet-600 focus:outline-none"
-                            placeholder="e.g. Wireless Headphones"
+                            placeholder="e.g. Wireless Noise-Cancelling Headphones"
                         />
                         <p v-if="form.errors.name" class="text-[11px] text-red-600 mt-1">{{ form.errors.name }}</p>
                     </div>

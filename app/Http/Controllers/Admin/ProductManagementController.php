@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductImage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -15,7 +16,7 @@ class ProductManagementController extends Controller
 {
     public function index(Request $request): Response
     {
-        $query = Product::with('category');
+        $query = Product::with(['category', 'images']);
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
@@ -55,11 +56,30 @@ class ProductManagementController extends Controller
             'is_featured' => 'boolean',
             'is_best_seller' => 'boolean',
             'is_active' => 'boolean',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
+            'image_url' => 'nullable|string|max:500',
         ]);
 
         $validated['slug'] = Str::slug($validated['name']).'-'.Str::random(5);
 
-        Product::create($validated);
+        $product = Product::create($validated);
+
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('products', 'public');
+            $imagePath = '/storage/'.$path;
+        } elseif ($request->filled('image_url')) {
+            $imagePath = $request->image_url;
+        }
+
+        if ($imagePath) {
+            ProductImage::create([
+                'product_id' => $product->id,
+                'image_path' => $imagePath,
+                'is_primary' => true,
+                'sort_order' => 0,
+            ]);
+        }
 
         return redirect()->back()->with('success', 'Product created successfully.');
     }
@@ -77,6 +97,8 @@ class ProductManagementController extends Controller
             'is_featured' => 'boolean',
             'is_best_seller' => 'boolean',
             'is_active' => 'boolean',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
+            'image_url' => 'nullable|string|max:500',
         ]);
 
         if ($product->name !== $validated['name']) {
@@ -84,6 +106,29 @@ class ProductManagementController extends Controller
         }
 
         $product->update($validated);
+
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('products', 'public');
+            $imagePath = '/storage/'.$path;
+        } elseif ($request->filled('image_url')) {
+            $imagePath = $request->image_url;
+        }
+
+        if ($imagePath) {
+            $primaryImage = $product->images()->where('is_primary', true)->first();
+
+            if ($primaryImage) {
+                $primaryImage->update(['image_path' => $imagePath]);
+            } else {
+                ProductImage::create([
+                    'product_id' => $product->id,
+                    'image_path' => $imagePath,
+                    'is_primary' => true,
+                    'sort_order' => 0,
+                ]);
+            }
+        }
 
         return redirect()->back()->with('success', 'Product updated successfully.');
     }
