@@ -19,6 +19,18 @@ Route::get('help-support', HelpSupportController::class)->name('help.support');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'Dashboard')->name('dashboard');
+
+    Route::prefix('dashboard')->name('dashboard.')->group(function () {
+        Route::inertia('overview', 'Dashboard')->name('overview');
+        Route::inertia('products', 'Dashboard/Products')->name('products');
+        Route::inertia('categories', 'Dashboard/Categories')->name('categories');
+        Route::inertia('orders', 'Dashboard/Orders')->name('orders');
+        Route::inertia('customers', 'Dashboard/Customers')->name('customers');
+        Route::inertia('coupons', 'Dashboard/Coupons')->name('coupons');
+        Route::inertia('reviews', 'Dashboard/Reviews')->name('reviews');
+        Route::inertia('hero-slides', 'Dashboard/HeroSlides')->name('hero-slides');
+        Route::inertia('payments', 'Dashboard/Payments')->name('payments');
+    });
 });
 
 require __DIR__.'/settings.php';
