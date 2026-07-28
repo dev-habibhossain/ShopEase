@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, router, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import {
     Plus,
@@ -7,137 +7,229 @@ import {
     FolderTree,
     Edit3,
     Trash2,
-    CheckCircle2,
-    Package,
-    ArrowUpRight,
+    X,
 } from '@lucide/vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
+
+const props = defineProps<{
+    categories: {
+        data: Array<{
+            id: number;
+            name: string;
+            slug: string;
+            description?: string;
+            image?: string;
+            sort_order: number;
+            is_active: boolean;
+            products_count?: number;
+        }>;
+    };
+    filters: { search?: string };
+}>();
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
     { title: 'Categories', href: '/dashboard/categories' },
 ];
 
-const searchQuery = ref('');
+const search = ref(props.filters.search || '');
 
-const categories = [
-    {
-        id: 1,
-        name: 'Electronics',
-        slug: 'electronics',
-        productsCount: 124,
-        description: 'Gadgets, smartphones, audio devices, and home electronics.',
-        img: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=400&q=70',
-        status: 'Active',
-    },
-    {
-        id: 2,
-        name: 'Fashion',
-        slug: 'fashion',
-        productsCount: 98,
-        description: 'Clothing, footwear, sneakers, and fashion accessories.',
-        img: 'https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=400&q=70',
-        status: 'Active',
-    },
-    {
-        id: 3,
-        name: 'Home & Living',
-        slug: 'home-living',
-        productsCount: 64,
-        description: 'Furniture, decor, kitchenware, and lifestyle items.',
-        img: 'https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?auto=format&fit=crop&w=400&q=70',
-        status: 'Active',
-    },
-    {
-        id: 4,
-        name: 'Beauty & Health',
-        slug: 'beauty-health',
-        productsCount: 36,
-        description: 'Skincare, cosmetics, personal care, and grooming.',
-        img: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=400&q=70',
-        status: 'Active',
-    },
-    {
-        id: 5,
-        name: 'Sports & Outdoors',
-        slug: 'sports-outdoors',
-        productsCount: 18,
-        description: 'Fitness equipment, athletic gear, and camping equipment.',
-        img: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=400&q=70',
-        status: 'Active',
-    },
-    {
-        id: 6,
-        name: 'Books & Stationery',
-        slug: 'books-stationery',
-        productsCount: 12,
-        description: 'Novels, educational books, notebooks, and office supplies.',
-        img: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=400&q=70',
-        status: 'Active',
-    },
-];
+const applyFilters = () => {
+    router.get('/dashboard/categories', { search: search.value }, { preserveState: true, replace: true });
+};
+
+// Modal State
+const isModalOpen = ref(false);
+const isEditing = ref(false);
+const editingCategoryId = ref<number | null>(null);
+
+const form = useForm({
+    name: '',
+    description: '',
+    sort_order: 0,
+    is_active: true,
+});
+
+const openCreateModal = () => {
+    isEditing.value = false;
+    editingCategoryId.value = null;
+    form.reset();
+    form.clearErrors();
+    isModalOpen.value = true;
+};
+
+const openEditModal = (category: any) => {
+    isEditing.value = true;
+    editingCategoryId.value = category.id;
+    form.clearErrors();
+    form.name = category.name;
+    form.description = category.description || '';
+    form.sort_order = category.sort_order || 0;
+    form.is_active = Boolean(category.is_active);
+    isModalOpen.value = true;
+};
+
+const closeModal = () => {
+    isModalOpen.value = false;
+    form.reset();
+};
+
+const submitForm = () => {
+    if (isEditing.value && editingCategoryId.value) {
+        form.put(`/dashboard/categories/${editingCategoryId.value}`, {
+            onSuccess: () => closeModal(),
+        });
+    } else {
+        form.post('/dashboard/categories', {
+            onSuccess: () => closeModal(),
+        });
+    }
+};
+
+const deleteCategory = (id: number) => {
+    if (confirm('Are you sure you want to delete this category?')) {
+        router.delete(`/dashboard/categories/${id}`);
+    }
+};
 </script>
 
 <template>
     <Head title="Categories — ShopEase Admin" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+        <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8 bg-white min-h-screen">
             <!-- Header -->
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-200 pb-6">
                 <div>
-                    <h1 class="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">Product Categories</h1>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-neutral-400">
-                        Organize product categories displayed on storefront homepage and filter menus.
-                    </p>
+                    <h1 class="text-2xl font-bold tracking-tight text-gray-900">Categories Management</h1>
+                    <p class="text-sm text-gray-500 mt-1">Organize storefront product categories and display priority</p>
                 </div>
                 <button
+                    @click="openCreateModal"
                     type="button"
-                    class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-semibold text-sm transition shadow-xs"
+                    class="inline-flex items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700"
                 >
                     <Plus class="w-4 h-4" /> Add Category
                 </button>
             </div>
 
-            <!-- Categories Card Grid -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div
-                    v-for="category in categories"
-                    :key="category.id"
-                    class="group flex flex-col rounded-2xl border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 overflow-hidden shadow-xs hover:shadow-md transition"
-                >
-                    <div class="relative aspect-video overflow-hidden bg-gray-100 dark:bg-neutral-800">
-                        <img :src="category.img" :alt="category.name" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
-                        <div class="absolute top-3 right-3 flex items-center gap-2">
-                            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500 text-white shadow-xs">
-                                {{ category.status }}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="flex flex-col flex-1 p-5">
-                        <div class="flex items-center justify-between">
-                            <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ category.name }}</h2>
-                            <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-violet-50 text-violet-700 dark:bg-violet-950 dark:text-violet-300">
-                                {{ category.productsCount }} Products
-                            </span>
-                        </div>
-                        <p class="mt-1 text-xs font-mono text-gray-400">/category/{{ category.slug }}</p>
-                        <p class="mt-2 text-xs text-gray-500 dark:text-neutral-400 line-clamp-2">{{ category.description }}</p>
-
-                        <div class="mt-auto pt-4 flex items-center justify-between border-t border-gray-100 dark:border-neutral-800">
-                            <span class="text-xs text-gray-400">ID: #CAT-0{{ category.id }}</span>
-                            <div class="flex items-center gap-2">
-                                <button class="p-1.5 rounded-lg border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-600 dark:text-neutral-300 transition">
-                                    <Edit3 class="w-4 h-4" />
-                                </button>
-                                <button class="p-1.5 rounded-lg border border-gray-200 dark:border-neutral-700 hover:bg-red-50 text-red-600 dark:hover:bg-red-950/50 transition">
-                                    <Trash2 class="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+            <!-- Search Strip -->
+            <div class="flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50/50 p-4">
+                <div class="relative w-full sm:w-80">
+                    <Search class="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                    <input
+                        v-model="search"
+                        @keyup.enter="applyFilters"
+                        type="text"
+                        placeholder="Search category name..."
+                        class="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-4 text-xs text-gray-900 placeholder:text-gray-400 focus:border-violet-600 focus:outline-none"
+                    />
                 </div>
+            </div>
+
+            <!-- Table -->
+            <div class="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-xs">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-gray-600">
+                        <thead class="bg-gray-50 text-xs font-semibold uppercase tracking-wider text-gray-500 border-b border-gray-200">
+                            <tr>
+                                <th class="px-5 py-3.5">Category</th>
+                                <th class="px-5 py-3.5">Slug</th>
+                                <th class="px-5 py-3.5">Products Count</th>
+                                <th class="px-5 py-3.5">Sort Order</th>
+                                <th class="px-5 py-3.5">Status</th>
+                                <th class="px-5 py-3.5 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            <tr v-for="cat in categories.data" :key="cat.id" class="hover:bg-gray-50/80 transition">
+                                <td class="px-5 py-4 font-bold text-gray-900 text-xs sm:text-sm">
+                                    <div class="flex items-center gap-3">
+                                        <div class="h-9 w-9 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center font-bold text-xs">
+                                            <FolderTree class="w-4 h-4" />
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-gray-900 text-xs sm:text-sm">{{ cat.name }}</p>
+                                            <p class="text-[11px] text-gray-400 line-clamp-1">{{ cat.description || 'No description' }}</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-5 py-4 font-mono text-xs text-gray-500">{{ cat.slug }}</td>
+                                <td class="px-5 py-4 font-semibold text-xs text-gray-700">
+                                    {{ cat.products_count || 0 }} Products
+                                </td>
+                                <td class="px-5 py-4 text-xs font-bold text-gray-900">{{ cat.sort_order }}</td>
+                                <td class="px-5 py-4">
+                                    <span :class="['inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold', cat.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600']">
+                                        {{ cat.is_active ? 'Active' : 'Disabled' }}
+                                    </span>
+                                </td>
+                                <td class="px-5 py-4 text-right">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <button
+                                            @click="openEditModal(cat)"
+                                            type="button"
+                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 text-gray-600 hover:bg-violet-600 hover:text-white transition"
+                                        >
+                                            <Edit3 class="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                            @click="deleteCategory(cat.id)"
+                                            type="button"
+                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 text-red-600 hover:bg-red-600 hover:text-white transition"
+                                        >
+                                            <Trash2 class="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr v-if="!categories.data.length">
+                                <td colspan="6" class="px-5 py-8 text-center text-xs text-gray-500">No categories found.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add/Edit Modal -->
+        <div v-if="isModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-gray-200">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
+                    <h3 class="text-base font-bold text-gray-900">{{ isEditing ? 'Edit Category' : 'Add New Category' }}</h3>
+                    <button @click="closeModal" class="text-gray-400 hover:text-gray-600"><X class="w-5 h-5" /></button>
+                </div>
+
+                <form @submit.prevent="submitForm" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Category Name</label>
+                        <input v-model="form.name" type="text" required class="w-full rounded-lg border border-gray-300 p-2.5 text-xs focus:border-violet-600 focus:outline-none" placeholder="e.g. Consumer Electronics" />
+                        <p v-if="form.errors.name" class="text-[11px] text-red-600 mt-1">{{ form.errors.name }}</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Description</label>
+                        <textarea v-model="form.description" rows="3" class="w-full rounded-lg border border-gray-300 p-2.5 text-xs focus:border-violet-600 focus:outline-none" placeholder="Category summary..."></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Sort Order</label>
+                        <input v-model="form.sort_order" type="number" class="w-full rounded-lg border border-gray-300 p-2.5 text-xs focus:border-violet-600 focus:outline-none" />
+                    </div>
+
+                    <div class="flex items-center gap-2 pt-2">
+                        <input v-model="form.is_active" type="checkbox" class="rounded text-violet-600 focus:ring-violet-500" />
+                        <span class="text-xs font-medium text-gray-700">Is Active</span>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+                        <button @click="closeModal" type="button" class="rounded-lg border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">Cancel</button>
+                        <button type="submit" :disabled="form.processing" class="rounded-lg bg-violet-600 px-4 py-2 text-xs font-semibold text-white hover:bg-violet-700 disabled:opacity-50">
+                            {{ form.processing ? 'Saving...' : (isEditing ? 'Update Category' : 'Save Category') }}
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </AppLayout>

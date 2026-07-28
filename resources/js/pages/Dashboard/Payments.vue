@@ -1,131 +1,104 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
-import { CreditCard, DollarSign, CheckCircle2, Clock, Eye, Printer, ShieldCheck } from '@lucide/vue';
+import { Head, router } from '@inertiajs/vue3';
+import { ref } from 'vue';
+import { Search, CreditCard } from '@lucide/vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
+
+const props = defineProps<{
+    payments: {
+        data: Array<{
+            id: number;
+            transaction_id: string;
+            payment_method: string;
+            amount: number;
+            status: string;
+            created_at: string;
+            order?: {
+                order_number: string;
+                customer_name: string;
+            };
+        }>;
+    };
+    filters: { search?: string };
+}>();
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
     { title: 'Payments', href: '/dashboard/payments' },
 ];
 
-const payments = [
-    {
-        txId: 'SSL-987452',
-        orderId: 'ORD-8941',
-        customer: 'Tanvir Hasan',
-        gateway: 'SSLCommerz (bKash/Visa)',
-        amount: '৳ 4,299',
-        status: 'Successful',
-        date: 'Jul 28, 2026 13:12',
-    },
-    {
-        txId: 'COD-8942',
-        orderId: 'ORD-8942',
-        customer: 'Rina Akter',
-        gateway: 'Cash on Delivery',
-        amount: '৳ 6,499',
-        status: 'Successful',
-        date: 'Jul 28, 2026 14:45',
-    },
-    {
-        txId: 'SSL-987410',
-        orderId: 'ORD-8939',
-        customer: 'Kamal Hossain',
-        gateway: 'SSLCommerz (Nagad)',
-        amount: '৳ 12,850',
-        status: 'Successful',
-        date: 'Jul 27, 2026 18:20',
-    },
-    {
-        txId: 'COD-8940',
-        orderId: 'ORD-8940',
-        customer: 'Nusrat Jahan',
-        gateway: 'Cash on Delivery',
-        amount: '৳ 2,999',
-        status: 'Pending',
-        date: 'Jul 28, 2026 11:30',
-    },
-];
+const search = ref(props.filters.search || '');
+
+const applyFilters = () => {
+    router.get('/dashboard/payments', { search: search.value }, { preserveState: true, replace: true });
+};
 </script>
 
 <template>
-    <Head title="Payments — ShopEase Admin" />
+    <Head title="Payments & Transactions — ShopEase Admin" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-            <!-- Header -->
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8 bg-white min-h-screen">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-200 pb-6">
                 <div>
-                    <h1 class="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">Payment Transactions</h1>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-neutral-400">
-                        View financial logs from SSLCommerz payment gateway and Cash on Delivery.
-                    </p>
+                    <h1 class="text-2xl font-bold tracking-tight text-gray-900">Payment Transactions</h1>
+                    <p class="text-sm text-gray-500 mt-1">Audit online payment gateways, transaction IDs, and payout logs</p>
                 </div>
             </div>
 
-            <!-- Stats Bar -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div class="p-4 rounded-xl border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
-                    <span class="text-xs font-semibold text-gray-400">Total Collected</span>
-                    <p class="mt-2 text-xl font-extrabold text-gray-900 dark:text-white">৳ 458,920</p>
-                </div>
-                <div class="p-4 rounded-xl border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
-                    <span class="text-xs font-semibold text-gray-400">SSLCommerz Online</span>
-                    <p class="mt-2 text-xl font-extrabold text-violet-600">৳ 284,500</p>
-                </div>
-                <div class="p-4 rounded-xl border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
-                    <span class="text-xs font-semibold text-gray-400">Cash on Delivery</span>
-                    <p class="mt-2 text-xl font-extrabold text-blue-600">৳ 174,420</p>
-                </div>
-                <div class="p-4 rounded-xl border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
-                    <span class="text-xs font-semibold text-gray-400">Success Rate</span>
-                    <p class="mt-2 text-xl font-extrabold text-emerald-600">98.4%</p>
+            <div class="flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50/50 p-4">
+                <div class="relative w-full sm:w-80">
+                    <Search class="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                    <input
+                        v-model="search"
+                        @keyup.enter="applyFilters"
+                        type="text"
+                        placeholder="Search transaction ID..."
+                        class="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-4 text-xs text-gray-900 focus:border-violet-600 focus:outline-none"
+                    />
                 </div>
             </div>
 
-            <!-- Table -->
-            <div class="rounded-2xl border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 overflow-hidden shadow-xs">
+            <div class="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-xs">
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm text-gray-600 dark:text-neutral-300">
-                        <thead class="bg-gray-50 dark:bg-neutral-800/50 text-xs font-semibold uppercase text-gray-500 dark:text-neutral-400">
+                    <table class="w-full text-left text-sm text-gray-600">
+                        <thead class="bg-gray-50 text-xs font-semibold uppercase tracking-wider text-gray-500 border-b border-gray-200">
                             <tr>
-                                <th class="px-5 py-3.5">Tx ID / Order</th>
-                                <th class="px-5 py-3.5">Customer</th>
-                                <th class="px-5 py-3.5">Gateway Method</th>
+                                <th class="px-5 py-3.5">Transaction ID</th>
+                                <th class="px-5 py-3.5">Order Number</th>
+                                <th class="px-5 py-3.5">Method</th>
                                 <th class="px-5 py-3.5">Amount</th>
                                 <th class="px-5 py-3.5">Status</th>
-                                <th class="px-5 py-3.5 text-right">Actions</th>
+                                <th class="px-5 py-3.5">Date</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100 dark:divide-neutral-800">
-                            <tr v-for="pay in payments" :key="pay.txId" class="hover:bg-gray-50/50 dark:hover:bg-neutral-800/30 transition">
-                                <td class="px-5 py-4 whitespace-nowrap">
-                                    <span class="font-extrabold text-gray-900 dark:text-white font-mono text-xs">{{ pay.txId }}</span>
-                                    <span class="block text-xs text-gray-400 font-mono">Order #{{ pay.orderId }}</span>
+                        <tbody class="divide-y divide-gray-200">
+                            <tr v-for="pay in payments.data" :key="pay.id" class="hover:bg-gray-50/80 transition">
+                                <td class="px-5 py-4 font-bold text-gray-900 font-mono text-xs sm:text-sm">
+                                    <div class="flex items-center gap-2">
+                                        <CreditCard class="w-4 h-4 text-violet-600" />
+                                        {{ pay.transaction_id || 'N/A' }}
+                                    </div>
                                 </td>
-                                <td class="px-5 py-4 whitespace-nowrap font-bold text-gray-900 dark:text-white text-xs">
-                                    {{ pay.customer }}
+                                <td class="px-5 py-4 text-xs font-semibold text-gray-700">
+                                    {{ pay.order?.order_number || 'N/A' }}
                                 </td>
-                                <td class="px-5 py-4 whitespace-nowrap text-xs">
-                                    {{ pay.gateway }}
+                                <td class="px-5 py-4 text-xs font-bold uppercase text-gray-900">{{ pay.payment_method }}</td>
+                                <td class="px-5 py-4 font-extrabold text-violet-600 text-xs sm:text-sm">
+                                    ৳ {{ Number(pay.amount).toLocaleString() }}
                                 </td>
-                                <td class="px-5 py-4 whitespace-nowrap font-extrabold text-violet-600 dark:text-violet-400">
-                                    {{ pay.amount }}
-                                </td>
-                                <td class="px-5 py-4 whitespace-nowrap">
-                                    <span :class="[
-                                        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold',
-                                        pay.status === 'Successful' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
-                                    ]">
+                                <td class="px-5 py-4">
+                                    <span :class="['inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold capitalize', pay.status === 'paid' || pay.status === 'completed' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700']">
                                         {{ pay.status }}
                                     </span>
                                 </td>
-                                <td class="px-5 py-4 text-right whitespace-nowrap">
-                                    <button title="Print Receipt" class="p-1.5 rounded-lg border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-600 dark:text-neutral-300 transition">
-                                        <Printer class="w-4 h-4" />
-                                    </button>
+                                <td class="px-5 py-4 text-xs text-gray-500">
+                                    {{ new Date(pay.created_at).toLocaleString() }}
                                 </td>
+                            </tr>
+                            <tr v-if="!payments.data.length">
+                                <td colspan="6" class="px-5 py-8 text-center text-xs text-gray-500">No payment transaction records found.</td>
                             </tr>
                         </tbody>
                     </table>

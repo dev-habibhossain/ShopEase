@@ -1,99 +1,196 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
-import { Plus, Image, Eye, Edit3, Trash2, Move, Link as LinkIcon } from '@lucide/vue';
+import { Head, router, useForm } from '@inertiajs/vue3';
+import { ref } from 'vue';
+import { Plus, Image, Edit3, Trash2, X } from '@lucide/vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
+
+const props = defineProps<{
+    slides: {
+        data: Array<{
+            id: number;
+            image: string;
+            link?: string;
+            sort_order: number;
+            is_active: boolean;
+        }>;
+    };
+}>();
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
     { title: 'Hero Slides', href: '/dashboard/hero-slides' },
 ];
 
-const slides = [
-    {
-        id: 1,
-        order: 1,
-        title: 'Mega Electronics Sale - Up to 40% Off',
-        targetUrl: '/shop?category=electronics',
-        img: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=800&q=70',
-        status: 'Active',
-    },
-    {
-        id: 2,
-        name: 'New Fashion Arrival 2026 Collection',
-        targetUrl: '/shop?category=fashion',
-        img: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=70',
-        status: 'Active',
-    },
-    {
-        id: 3,
-        name: 'Home Essentials & Decor Festival',
-        targetUrl: '/shop?category=home-living',
-        img: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=800&q=70',
-        status: 'Active',
-    },
-];
+// Modal State
+const isModalOpen = ref(false);
+const isEditing = ref(false);
+const editingSlideId = ref<number | null>(null);
+
+const form = useForm({
+    image: '',
+    link: '',
+    sort_order: 0,
+    is_active: true,
+});
+
+const openCreateModal = () => {
+    isEditing.value = false;
+    editingSlideId.value = null;
+    form.reset();
+    form.clearErrors();
+    isModalOpen.value = true;
+};
+
+const openEditModal = (slide: any) => {
+    isEditing.value = true;
+    editingSlideId.value = slide.id;
+    form.clearErrors();
+    form.image = slide.image;
+    form.link = slide.link || '';
+    form.sort_order = slide.sort_order || 0;
+    form.is_active = Boolean(slide.is_active);
+    isModalOpen.value = true;
+};
+
+const closeModal = () => {
+    isModalOpen.value = false;
+    form.reset();
+};
+
+const submitForm = () => {
+    if (isEditing.value && editingSlideId.value) {
+        form.put(`/dashboard/hero-slides/${editingSlideId.value}`, {
+            onSuccess: () => closeModal(),
+        });
+    } else {
+        form.post('/dashboard/hero-slides', {
+            onSuccess: () => closeModal(),
+        });
+    }
+};
+
+const deleteSlide = (id: number) => {
+    if (confirm('Are you sure you want to delete this hero slide?')) {
+        router.delete(`/dashboard/hero-slides/${id}`);
+    }
+};
 </script>
 
 <template>
-    <Head title="Hero Slides — ShopEase Admin" />
+    <Head title="Hero Banners — ShopEase Admin" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-            <!-- Header -->
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8 bg-white min-h-screen">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-200 pb-6">
                 <div>
-                    <h1 class="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">Homepage Hero Banner Carousel</h1>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-neutral-400">
-                        Upload and arrange high-resolution promo banners for the main storefront carousel.
-                    </p>
+                    <h1 class="text-2xl font-bold tracking-tight text-gray-900">Hero Carousel Banners</h1>
+                    <p class="text-sm text-gray-500 mt-1">Manage promotional homepage slider banners, links, and display order</p>
                 </div>
                 <button
+                    @click="openCreateModal"
                     type="button"
-                    class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-semibold text-sm transition shadow-xs"
+                    class="inline-flex items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700"
                 >
-                    <Plus class="w-4 h-4" /> Add Hero Slide
+                    <Plus class="w-4 h-4" /> Add Hero Banner
                 </button>
             </div>
 
-            <!-- Slides List -->
-            <div class="space-y-4">
-                <div
-                    v-for="(slide, index) in slides"
-                    :key="slide.id"
-                    class="flex flex-col md:flex-row items-center gap-6 p-5 rounded-2xl border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xs"
-                >
-                    <div class="flex items-center gap-3 shrink-0">
-                        <span class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-neutral-300 font-bold flex items-center justify-center text-sm">
-                            #{{ index + 1 }}
-                        </span>
-                        <div class="w-48 h-28 rounded-xl overflow-hidden bg-gray-100 dark:bg-neutral-800 relative border border-gray-200 dark:border-neutral-700">
-                            <img :src="slide.img" :alt="slide.title" class="w-full h-full object-cover" />
-                        </div>
-                    </div>
-
-                    <div class="flex-1 space-y-1">
-                        <div class="flex items-center gap-3">
-                            <h2 class="text-base font-bold text-gray-900 dark:text-white">{{ slide.title || slide.name }}</h2>
-                            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
-                                {{ slide.status }}
-                            </span>
-                        </div>
-                        <div class="flex items-center gap-1.5 text-xs text-violet-600 dark:text-violet-400 font-mono">
-                            <LinkIcon class="w-3.5 h-3.5" />
-                            <span>{{ slide.targetUrl }}</span>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center gap-2">
-                        <button class="p-2 rounded-xl border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-600 dark:text-neutral-300 transition">
-                            <Edit3 class="w-4 h-4" />
-                        </button>
-                        <button class="p-2 rounded-xl border border-gray-200 dark:border-neutral-700 hover:bg-red-50 text-red-600 transition">
-                            <Trash2 class="w-4 h-4" />
-                        </button>
-                    </div>
+            <div class="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-xs">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-gray-600">
+                        <thead class="bg-gray-50 text-xs font-semibold uppercase tracking-wider text-gray-500 border-b border-gray-200">
+                            <tr>
+                                <th class="px-5 py-3.5">Banner Image</th>
+                                <th class="px-5 py-3.5">Target Link</th>
+                                <th class="px-5 py-3.5">Sort Order</th>
+                                <th class="px-5 py-3.5">Status</th>
+                                <th class="px-5 py-3.5 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            <tr v-for="slide in slides.data" :key="slide.id" class="hover:bg-gray-50/80 transition">
+                                <td class="px-5 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="h-10 w-16 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 overflow-hidden">
+                                            <img v-if="slide.image.startsWith('http')" :src="slide.image" class="w-full h-full object-cover" />
+                                            <Image v-else class="w-5 h-5 text-violet-600" />
+                                        </div>
+                                        <span class="text-xs font-mono text-gray-600 truncate max-w-xs">{{ slide.image }}</span>
+                                    </div>
+                                </td>
+                                <td class="px-5 py-4 font-mono text-xs text-gray-500">{{ slide.link || 'No link attached' }}</td>
+                                <td class="px-5 py-4 font-bold text-xs text-gray-900">{{ slide.sort_order }}</td>
+                                <td class="px-5 py-4">
+                                    <span :class="['inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold', slide.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600']">
+                                        {{ slide.is_active ? 'Active' : 'Disabled' }}
+                                    </span>
+                                </td>
+                                <td class="px-5 py-4 text-right">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <button
+                                            @click="openEditModal(slide)"
+                                            type="button"
+                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 text-gray-600 hover:bg-violet-600 hover:text-white transition"
+                                        >
+                                            <Edit3 class="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                            @click="deleteSlide(slide.id)"
+                                            type="button"
+                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 text-red-600 hover:bg-red-600 hover:text-white transition"
+                                        >
+                                            <Trash2 class="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr v-if="!slides.data.length">
+                                <td colspan="5" class="px-5 py-8 text-center text-xs text-gray-500">No hero slides found.</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
+            </div>
+        </div>
+
+        <!-- Add/Edit Modal -->
+        <div v-if="isModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-gray-200">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
+                    <h3 class="text-base font-bold text-gray-900">{{ isEditing ? 'Edit Hero Banner' : 'Add Hero Banner' }}</h3>
+                    <button @click="closeModal" class="text-gray-400 hover:text-gray-600"><X class="w-5 h-5" /></button>
+                </div>
+
+                <form @submit.prevent="submitForm" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Image URL / Path</label>
+                        <input v-model="form.image" type="text" required class="w-full rounded-lg border border-gray-300 p-2.5 text-xs focus:border-violet-600 focus:outline-none" placeholder="https://images.unsplash.com/..." />
+                        <p v-if="form.errors.image" class="text-[11px] text-red-600 mt-1">{{ form.errors.image }}</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Target Link URL</label>
+                        <input v-model="form.link" type="text" class="w-full rounded-lg border border-gray-300 p-2.5 text-xs focus:border-violet-600 focus:outline-none" placeholder="/shop?category=electronics" />
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Sort Order</label>
+                        <input v-model="form.sort_order" type="number" class="w-full rounded-lg border border-gray-300 p-2.5 text-xs focus:border-violet-600 focus:outline-none" />
+                    </div>
+
+                    <div class="flex items-center gap-2 pt-2">
+                        <input v-model="form.is_active" type="checkbox" class="rounded text-violet-600 focus:ring-violet-500" />
+                        <span class="text-xs font-medium text-gray-700">Is Active</span>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+                        <button @click="closeModal" type="button" class="rounded-lg border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">Cancel</button>
+                        <button type="submit" :disabled="form.processing" class="rounded-lg bg-violet-600 px-4 py-2 text-xs font-semibold text-white hover:bg-violet-700 disabled:opacity-50">
+                            {{ form.processing ? 'Saving...' : (isEditing ? 'Update Banner' : 'Save Banner') }}
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </AppLayout>
