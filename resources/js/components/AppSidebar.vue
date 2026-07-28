@@ -1,8 +1,19 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { BookOpen, FolderGit2, LayoutGrid } from '@lucide/vue';
+import {
+    CreditCard,
+    FolderTree,
+    Image,
+    LayoutGrid,
+    Package,
+    Settings,
+    ShoppingCart,
+    Star,
+    Store,
+    Ticket,
+    Users,
+} from '@lucide/vue';
 import AppLogo from '@/components/AppLogo.vue';
-import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
 import {
@@ -14,38 +25,99 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
-import type { NavItem } from '@/types';
+import type { NavGroup } from '@/types';
 
-const mainNavItems: NavItem[] = [
+const navGroups: NavGroup[] = [
     {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-];
-
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/vue-starter-kit',
-        icon: FolderGit2,
+        label: 'Overview',
+        items: [
+            {
+                title: 'Dashboard',
+                href: '/dashboard',
+                icon: LayoutGrid,
+            },
+        ],
     },
     {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#vue',
-        icon: BookOpen,
+        label: 'E-Commerce',
+        items: [
+            {
+                title: 'Products',
+                href: '/dashboard/products',
+                icon: Package,
+            },
+            {
+                title: 'Categories',
+                href: '/dashboard/categories',
+                icon: FolderTree,
+            },
+            {
+                title: 'Orders',
+                href: '/dashboard/orders',
+                icon: ShoppingCart,
+            },
+            {
+                title: 'Customers',
+                href: '/dashboard/customers',
+                icon: Users,
+            },
+        ],
+    },
+    {
+        label: 'Marketing & Content',
+        items: [
+            {
+                title: 'Coupons',
+                href: '/dashboard/coupons',
+                icon: Ticket,
+            },
+            {
+                title: 'Reviews',
+                href: '/dashboard/reviews',
+                icon: Star,
+            },
+            {
+                title: 'Hero Slides',
+                href: '/dashboard/hero-slides',
+                icon: Image,
+            },
+        ],
+    },
+    {
+        label: 'Finance',
+        items: [
+            {
+                title: 'Payments',
+                href: '/dashboard/payments',
+                icon: CreditCard,
+            },
+        ],
+    },
+    {
+        label: 'Shortcuts',
+        items: [
+            {
+                title: 'Storefront',
+                href: '/',
+                icon: Store,
+            },
+            {
+                title: 'Settings',
+                href: '/settings/profile',
+                icon: Settings,
+            },
+        ],
     },
 ];
 </script>
 
 <template>
-    <Sidebar collapsible="icon" variant="inset">
+    <Sidebar collapsible="none" variant="inset">
         <SidebarHeader>
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
-                        <Link :href="dashboard()">
+                        <Link href="/dashboard">
                             <AppLogo />
                         </Link>
                     </SidebarMenuButton>
@@ -54,13 +126,11 @@ const footerNavItems: NavItem[] = [
         </SidebarHeader>
 
         <SidebarContent>
-            <NavMain :items="mainNavItems" />
+            <NavMain :groups="navGroups" />
         </SidebarContent>
 
         <SidebarFooter>
-            <NavFooter :items="footerNavItems" />
             <NavUser />
         </SidebarFooter>
     </Sidebar>
-    <slot />
 </template>
