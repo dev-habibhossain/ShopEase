@@ -448,6 +448,17 @@ const getProductThumbnail = (product: any) => {
                         />
                     </div>
 
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Full Description</label>
+                        <textarea
+                            v-model="form.description"
+                            rows="4"
+                            class="w-full rounded-lg border border-gray-300 p-2.5 text-xs focus:border-violet-600 focus:outline-none"
+                            placeholder="Detailed product specification, features, and overview..."
+                        ></textarea>
+                        <p v-if="form.errors.description" class="text-[11px] text-red-600 mt-1">{{ form.errors.description }}</p>
+                    </div>
+
                     <div class="flex items-center gap-6 pt-2">
                         <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer">
                             <input v-model="form.is_active" type="checkbox" class="rounded text-violet-600 focus:ring-violet-500" /> Active
