@@ -23,13 +23,33 @@ class HeroSlideManagementController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'image' => 'required|string|max:255',
+            'image' => 'nullable|string|max:500',
+            'image_file' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
+            'image_url' => 'nullable|string|max:500',
             'link' => 'nullable|string|max:255',
             'sort_order' => 'integer|min:0',
             'is_active' => 'boolean',
         ]);
 
-        HeroSlide::create($validated);
+        $imagePath = $validated['image'] ?? null;
+
+        if ($request->hasFile('image_file')) {
+            $path = $request->file('image_file')->store('hero-slides', 'public');
+            $imagePath = '/storage/'.$path;
+        } elseif ($request->filled('image_url')) {
+            $imagePath = $request->image_url;
+        }
+
+        if (! $imagePath) {
+            return redirect()->back()->withErrors(['image' => 'Please provide an image file or URL.']);
+        }
+
+        HeroSlide::create([
+            'image' => $imagePath,
+            'link' => $validated['link'] ?? null,
+            'sort_order' => $validated['sort_order'] ?? 0,
+            'is_active' => $validated['is_active'] ?? true,
+        ]);
 
         return redirect()->back()->with('success', 'Hero slide created successfully.');
     }
@@ -37,13 +57,31 @@ class HeroSlideManagementController extends Controller
     public function update(Request $request, HeroSlide $heroSlide): RedirectResponse
     {
         $validated = $request->validate([
-            'image' => 'required|string|max:255',
+            'image' => 'nullable|string|max:500',
+            'image_file' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
+            'image_url' => 'nullable|string|max:500',
             'link' => 'nullable|string|max:255',
             'sort_order' => 'integer|min:0',
             'is_active' => 'boolean',
         ]);
 
-        $heroSlide->update($validated);
+        $imagePath = $heroSlide->image;
+
+        if ($request->hasFile('image_file')) {
+            $path = $request->file('image_file')->store('hero-slides', 'public');
+            $imagePath = '/storage/'.$path;
+        } elseif ($request->filled('image_url')) {
+            $imagePath = $request->image_url;
+        } elseif ($request->filled('image')) {
+            $imagePath = $request->image;
+        }
+
+        $heroSlide->update([
+            'image' => $imagePath,
+            'link' => $validated['link'] ?? null,
+            'sort_order' => $validated['sort_order'] ?? 0,
+            'is_active' => $validated['is_active'] ?? true,
+        ]);
 
         return redirect()->back()->with('success', 'Hero slide updated successfully.');
     }
