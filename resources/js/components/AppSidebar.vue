@@ -179,7 +179,7 @@ const navGroups = computed<NavGroup[]>(() => {
 </script>
 
 <template>
-    <Sidebar collapsible="none" variant="inset">
+    <Sidebar collapsible="icon" variant="inset">
         <SidebarHeader>
             <SidebarMenu>
                 <SidebarMenuItem>

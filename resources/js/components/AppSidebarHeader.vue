@@ -3,6 +3,7 @@ import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import { Search, Store, Bell, Settings, LogOut, ChevronDown } from '@lucide/vue';
 import Breadcrumbs from '@/components/Breadcrumbs.vue';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 import type { BreadcrumbItem } from '@/types';
 
 withDefaults(
@@ -46,8 +47,9 @@ onUnmounted(() => {
 
 <template>
     <header class="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-4 sm:px-6">
-        <!-- Left: Breadcrumbs -->
+        <!-- Left: Sidebar Toggle & Breadcrumbs -->
         <div class="flex items-center gap-3">
+            <SidebarTrigger class="-ml-1 text-gray-500 hover:text-gray-900" />
             <Breadcrumbs v-if="breadcrumbs && breadcrumbs.length" :breadcrumbs="breadcrumbs" />
         </div>
 
