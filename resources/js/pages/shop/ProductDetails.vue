@@ -77,7 +77,6 @@ const { showToast } = useToast();
 // Interactive states
 const selectedImageIndex = ref(0);
 const qty = ref(1);
-const activeTab = ref<'desc' | 'reviews'>('desc');
 
 // Reviews state synced with props.reviews
 const localReviews = ref<Review[]>([...props.reviews]);
@@ -170,7 +169,6 @@ const handleUpdateReviewSubmit = () => {
                 showToast('Review updated successfully!');
                 isUpdatingReview.value = false;
                 closeEditModal();
-                activeTab.value = 'reviews';
             },
             onError: () => {
                 showToast('Failed to update review. Please try again.');
@@ -183,8 +181,6 @@ const handleUpdateReviewSubmit = () => {
 const handleReviewDelete = (reviewId?: number) => {
     if (!reviewId) return;
     if (!confirm('Are you sure you want to delete your review?')) return;
-
-    activeTab.value = 'reviews';
 
     // Optimistically remove from localReviews
     localReviews.value = localReviews.value.filter(
@@ -199,11 +195,9 @@ const handleReviewDelete = (reviewId?: number) => {
             onSuccess: () => {
                 showToast('Your review has been deleted.');
                 resetReviewForm();
-                activeTab.value = 'reviews';
             },
             onError: () => {
                 showToast('Failed to delete review.');
-                activeTab.value = 'reviews';
             },
         }
     );
@@ -324,9 +318,12 @@ const handleBuyNow = () => {
     showToast(`Proceeding to checkout with ${qty.value} item(s) 💳`);
 };
 
-// Tabs helper
-const switchTab = (tab: 'desc' | 'reviews') => {
-    activeTab.value = tab;
+// Scroll helper
+const scrollToReviews = () => {
+    const el = document.getElementById('reviews-section');
+    if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+    }
 };
 
 // Star hover & click selection
@@ -350,7 +347,6 @@ const handleReviewSubmit = () => {
         return;
     }
 
-    activeTab.value = 'reviews';
     isSubmitting.value = true;
 
     // Optimistically update local reviews list instantly
@@ -383,13 +379,11 @@ const handleReviewSubmit = () => {
             onSuccess: () => {
                 showToast('Thank you! Your review has been submitted.');
                 isSubmitting.value = false;
-                activeTab.value = 'reviews';
                 resetReviewForm();
             },
             onError: () => {
                 showToast('Failed to save review. Please try again.');
                 isSubmitting.value = false;
-                activeTab.value = 'reviews';
             },
         }
     );
@@ -507,8 +501,8 @@ const formatPrice = (price: number) => {
                         product.rating
                     }}</span>
                     <button
-                        @click="switchTab('reviews')"
-                        class="text-sm text-gray-500 transition hover:text-primary-600"
+                        @click="scrollToReviews"
+                        class="text-sm text-gray-500 transition hover:text-primary-600 cursor-pointer"
                     >
                         {{ product.reviewCount }} reviews
                     </button>
@@ -748,61 +742,39 @@ const formatPrice = (price: number) => {
         </div>
     </section>
 
-    <!-- ============================ DETAILS TABS ============================ -->
+    <!-- ============================ DETAILS & REVIEWS ============================ -->
     <section class="border-t border-gray-200 bg-gray-50">
-        <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 md:py-14 lg:px-8">
-            <!-- Tab switches -->
-            <div class="border-b border-gray-200">
-                <div
-                    class="flex gap-6"
-                    role="tablist"
-                    aria-label="Product details"
-                >
-                    <button
-                        @click="switchTab('desc')"
-                        role="tab"
-                        :aria-selected="activeTab === 'desc'"
-                        class="tab-btn -mb-px border-b-2 px-1 pb-3 text-sm font-semibold transition"
-                        :class="[
-                            activeTab === 'desc'
-                                ? 'border-primary-600 text-primary-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-900',
-                        ]"
-                    >
-                        Description
-                    </button>
-                    <button
-                        @click="switchTab('reviews')"
-                        role="tab"
-                        :aria-selected="activeTab === 'reviews'"
-                        class="tab-btn -mb-px border-b-2 px-1 pb-3 text-sm font-semibold transition"
-                        :class="[
-                            activeTab === 'reviews'
-                                ? 'border-primary-600 text-primary-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-900',
-                        ]"
-                    >
-                        Reviews
-                        <span class="text-gray-400"
-                            >({{ localReviews.length }})</span
-                        >
-                    </button>
+        <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 md:py-14 lg:px-8 space-y-12">
+            <!-- Description section -->
+            <div>
+                <div class="border-b border-gray-200">
+                    <div class="flex">
+                        <div class="-mb-px border-b-2 border-primary-600 px-1 pb-3 text-base font-bold text-primary-600">
+                            Description
+                        </div>
+                    </div>
+                </div>
+                <div class="pt-6">
+                    <div
+                        v-if="product.description"
+                        class="max-w-prose space-y-4 text-sm leading-relaxed text-gray-600 md:text-base"
+                        v-html="product.description"
+                    ></div>
+                    <p v-else class="text-sm text-gray-500">No description available for this product.</p>
                 </div>
             </div>
 
-            <!-- Description panel -->
-            <div v-if="activeTab === 'desc'" role="tabpanel" class="pt-6">
-                <div
-                    v-if="product.description"
-                    class="max-w-prose space-y-4 text-sm leading-relaxed text-gray-600 md:text-base"
-                    v-html="product.description"
-                ></div>
-                <p v-else class="text-sm text-gray-500">No description available for this product.</p>
-            </div>
-
-            <!-- Reviews panel -->
-            <div v-if="activeTab === 'reviews'" role="tabpanel" class="pt-6">
-                <div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
+            <!-- Reviews section -->
+            <div id="reviews-section">
+                <div class="border-b border-gray-200">
+                    <div class="flex">
+                        <div class="-mb-px border-b-2 border-primary-600 px-1 pb-3 text-base font-bold text-primary-600">
+                            Reviews <span class="text-gray-400">({{ localReviews.length }})</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="pt-6">
+                    <div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
                     <!-- Rating summary card -->
                     <div class="lg:col-span-1">
                         <div
@@ -1062,7 +1034,7 @@ const formatPrice = (price: number) => {
                                     :disabled="isSubmitting"
                                     class="rounded-lg bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700 focus:ring-2 focus:ring-primary-600 focus:outline-none disabled:opacity-50"
                                 >
-                                    {{ isSubmitting ? 'Saving...' : (hasUserReview ? 'Update Review' : 'Submit Review') }}
+                                    {{ isSubmitting ? 'Saving...' : 'Submit Review' }}
                                 </button>
                             </form>
                         </div>
@@ -1070,6 +1042,7 @@ const formatPrice = (price: number) => {
                 </div>
             </div>
         </div>
+    </div>
     </section>
 
     <!-- ============================ RELATED PRODUCTS ============================ -->
