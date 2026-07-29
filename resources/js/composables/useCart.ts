@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue';
+import { router } from '@inertiajs/vue3';
 
 export interface CartItem {
     name: string;
@@ -14,7 +15,26 @@ export interface AppliedCoupon {
     label: string;
 }
 
-const cart = ref<CartItem[]>([]);
+const STORAGE_KEY = 'shopease_cart';
+
+function loadStoredCart(): CartItem[] {
+    try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        return stored ? JSON.parse(stored) : [];
+    } catch {
+        return [];
+    }
+}
+
+function syncLocalStorage() {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cart.value));
+    } catch (e) {
+        console.error('Failed to save cart to localStorage', e);
+    }
+}
+
+const cart = ref<CartItem[]>(loadStoredCart());
 const isCartOpen = ref(false);
 const appliedCoupon = ref<AppliedCoupon | null>(null);
 
@@ -64,6 +84,7 @@ export function useCart() {
         price: number,
         img: string,
         qty: number = 1,
+        openDrawer: boolean = true,
     ) {
         const qtyNum = Math.max(1, Number(qty) || 1);
         const existing = cart.value.find((item) => item.name === name);
@@ -77,22 +98,28 @@ export function useCart() {
                 qty: qtyNum,
             });
         }
-        openCart();
+        syncLocalStorage();
+        if (openDrawer) {
+            openCart();
+        }
     }
 
     function buyNow(name: string, price: number, img: string, qty: number = 1) {
-        addToCart(name, price, img, qty);
+        addToCart(name, price, img, qty, false);
+        router.visit('/checkout');
     }
 
     function incrementQty(index: number) {
         if (cart.value[index]) {
             cart.value[index].qty++;
+            syncLocalStorage();
         }
     }
 
     function decrementQty(index: number) {
         if (cart.value[index] && cart.value[index].qty > 1) {
             cart.value[index].qty--;
+            syncLocalStorage();
         }
     }
 
@@ -101,11 +128,13 @@ export function useCart() {
         if (cart.value.length === 0) {
             appliedCoupon.value = null;
         }
+        syncLocalStorage();
     }
 
     function clearCart() {
         cart.value = [];
         appliedCoupon.value = null;
+        syncLocalStorage();
     }
 
     function applyCoupon(code: string): { success: boolean; message: string } {

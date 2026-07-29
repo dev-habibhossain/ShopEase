@@ -15,6 +15,7 @@ use App\Http\Controllers\Storefront\HelpSupportController;
 use App\Http\Controllers\Storefront\HomeController;
 use App\Http\Controllers\Storefront\ProductDetailsController;
 use App\Http\Controllers\Storefront\ShopController;
+use App\Http\Controllers\Storefront\StripeCheckoutController;
 use App\Http\Controllers\Storefront\WishlistController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,6 +24,8 @@ Route::get('product-details/{slug}', ProductDetailsController::class)->name('pro
 Route::get('shop', ShopController::class)->name('shop');
 Route::get('cart', CartController::class)->name('cart');
 Route::get('checkout', CheckoutController::class)->name('checkout');
+Route::post('checkout/stripe-session', [StripeCheckoutController::class, 'createSession'])->name('checkout.stripe.session');
+Route::get('checkout/stripe/success', [StripeCheckoutController::class, 'success'])->name('checkout.stripe.success');
 Route::get('wishlist', [WishlistController::class, 'index'])->name('wishlist');
 Route::post('wishlist/toggle/{product}', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
 Route::get('help-support', HelpSupportController::class)->name('help.support');

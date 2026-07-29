@@ -1,35 +1,31 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
+import { useCart } from '@/composables/useCart';
 import { useToast } from '@/composables/useToast';
 
 const { showToast } = useToast();
+const page = usePage();
 
-const cart = ref([
-    {
-        name: 'Wireless Noise-Cancelling Headphones',
-        price: 6499,
-        qty: 1,
-        img: 'Headphones',
-    },
-    {
-        name: 'Smart Fitness Watch Series 6',
-        price: 4299,
-        qty: 1,
-        img: 'Watch',
-    },
-    {
-        name: 'Classic Leather Sneakers',
-        price: 2999,
-        qty: 2,
-        img: 'Sneakers',
-    },
-]);
+const {
+    cart,
+    cartSubtotal,
+    appliedCoupon,
+    couponDiscount,
+    cartTotal,
+    removeFromCart,
+    incrementQty,
+    decrementQty,
+    clearCart,
+} = useCart();
+
+// Prefill auth user data if logged in
+const authUser = computed(() => (page.props.auth as any)?.user);
 
 // Form Fields
-const fullName = ref('');
+const fullName = ref(authUser.value?.name || '');
 const phone = ref('');
-const email = ref('');
+const email = ref(authUser.value?.email || '');
 const district = ref('');
 const area = ref('');
 const address = ref('');
@@ -66,35 +62,38 @@ const finalTotal = ref(0);
 // Mobile Summary Collapse State
 const showSummaryMobile = ref(false);
 
-const cartSubtotal = computed(() => {
-    return cart.value.reduce((total, item) => total + item.price * item.qty, 0);
-});
-
 const deliveryCharge = computed(() => {
     if (cart.value.length === 0) return 0;
+    if (appliedCoupon.value?.code === 'FREESHIP') return 0;
     return district.value === 'Dhaka' ? 60 : 120;
 });
 
 const grandTotal = computed(() => {
     if (cart.value.length === 0) return 0;
-    return cartSubtotal.value + deliveryCharge.value;
+    return Math.max(0, cartTotal.value + deliveryCharge.value);
 });
 
 // Cart Actions
 const decreaseQty = (idx: number) => {
-    if (cart.value[idx].qty > 1) {
-        cart.value[idx].qty--;
-    }
+    decrementQty(idx);
 };
 
 const increaseQty = (idx: number) => {
-    cart.value[idx].qty++;
+    incrementQty(idx);
 };
 
 const removeItem = (idx: number) => {
     const item = cart.value[idx];
-    cart.value.splice(idx, 1);
-    showToast(`Removed: ${item.name}`);
+    if (item) {
+        removeFromCart(idx);
+        showToast(`Removed: ${item.name}`);
+    }
+};
+
+const getItemImg = (img: string) => {
+    if (!img) return 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=120&q=70';
+    if (img.startsWith('http')) return img;
+    return `https://images.unsplash.com/${img}?auto=format&fit=crop&w=120&q=70`;
 };
 
 // Format Card Inputs
@@ -140,7 +139,7 @@ const cardType = computed(() => {
 // Form Validation
 const validateForm = () => {
     let isValid = true;
-    
+
     // Full Name
     if (!fullName.value.trim()) {
         errors.value.fullName = true;
@@ -202,6 +201,22 @@ const isStripeFormValid = computed(() => {
     );
 });
 
+const props = defineProps<{
+    stripeSuccess?: {
+        orderId: string;
+        total: number;
+        paymentMethod: string;
+    };
+}>();
+
+if (props.stripeSuccess) {
+    isOrderSuccess.value = true;
+    orderId.value = props.stripeSuccess.orderId;
+    finalTotal.value = props.stripeSuccess.total;
+    finalPaymentMethod.value = props.stripeSuccess.paymentMethod;
+    clearCart();
+}
+
 // Form Submit Handling
 const handleFormSubmit = () => {
     if (cart.value.length === 0) {
@@ -211,8 +226,7 @@ const handleFormSubmit = () => {
 
     if (!validateForm()) {
         showToast('Please complete the highlighted fields');
-        // Scroll to first error
-        const firstErrorEl = Object.keys(errors.value).find(key => errors.value[key as keyof typeof errors.value]);
+        const firstErrorEl = Object.keys(errors.value).find((key) => errors.value[key as keyof typeof errors.value]);
         if (firstErrorEl) {
             const el = document.getElementById(firstErrorEl);
             if (el) {
@@ -238,10 +252,49 @@ const processDirectOrder = () => {
         finalPaymentMethod.value = 'Cash on Delivery';
         finalTotal.value = grandTotal.value;
         orderId.value = 'SE-' + new Date().getFullYear() + '-' + Math.floor(100000 + Math.random() * 900000);
-        cart.value = [];
+        clearCart();
         showToast('Order placed successfully!');
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 1000);
+};
+
+const initiateStripeCheckoutSession = async () => {
+    isProcessing.value = true;
+    try {
+        const response = await fetch('/checkout/stripe-session', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+            },
+            body: JSON.stringify({
+                cart: cart.value,
+                fullName: fullName.value,
+                phone: phone.value,
+                email: email.value,
+                district: district.value,
+                area: area.value,
+                address: address.value,
+                notes: notes.value,
+                deliveryCharge: deliveryCharge.value,
+            }),
+        });
+
+        const data = await response.json();
+        isProcessing.value = false;
+
+        if (data.url) {
+            showStripeModal.value = false;
+            clearCart();
+            window.location.href = data.url;
+        } else {
+            showToast(data.message || 'Failed to initiate Stripe payment.');
+        }
+    } catch (e) {
+        isProcessing.value = false;
+        showToast('An error occurred connecting to Stripe payment gateway.');
+    }
 };
 
 const submitStripePayment = () => {
@@ -250,19 +303,7 @@ const submitStripePayment = () => {
         return;
     }
 
-    isProcessing.value = true;
-
-    setTimeout(() => {
-        isProcessing.value = false;
-        showStripeModal.value = false;
-        isOrderSuccess.value = true;
-        finalPaymentMethod.value = 'Stripe (Paid)';
-        finalTotal.value = grandTotal.value;
-        orderId.value = 'SE-' + new Date().getFullYear() + '-' + Math.floor(100000 + Math.random() * 900000);
-        cart.value = [];
-        showToast('Stripe payment processed successfully!');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 2000);
+    initiateStripeCheckoutSession();
 };
 
 const formatPrice = (price: number) => {
@@ -279,7 +320,7 @@ const formatPrice = (price: number) => {
             <ol class="flex flex-wrap items-center gap-1.5 text-sm text-gray-500">
                 <li><Link href="/" class="hover:text-primary-600">Home</Link></li>
                 <li aria-hidden="true" class="text-gray-300">/</li>
-                <li><Link href="/shop" class="hover:text-primary-600">Cart</Link></li>
+                <li><Link href="/cart" class="hover:text-primary-600">Cart</Link></li>
                 <li aria-hidden="true" class="text-gray-300">/</li>
                 <li aria-current="page" class="font-medium text-gray-900">Checkout</li>
             </ol>
@@ -545,7 +586,7 @@ const formatPrice = (price: number) => {
                                 class="flex gap-3 py-4"
                             >
                                 <div class="h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
-                                    <img :src="`https://placehold.co/120x120/F5F3FF/7C3AED?text=${encodeURIComponent(item.img)}`" :alt="item.name" class="h-full w-full object-cover" />
+                                    <img :src="getItemImg(item.img)" :alt="item.name" class="h-full w-full object-cover" />
                                 </div>
                                 <div class="min-w-0 flex-1">
                                     <div class="flex items-start justify-between gap-2">
@@ -597,6 +638,10 @@ const formatPrice = (price: number) => {
                             <div class="flex justify-between">
                                 <span class="text-gray-500">Subtotal</span>
                                 <span class="font-medium text-gray-900">{{ formatPrice(cartSubtotal) }}</span>
+                            </div>
+                            <div v-if="couponDiscount > 0" class="flex justify-between text-green-600 font-semibold">
+                                <span>Promo Discount</span>
+                                <span>- {{ formatPrice(couponDiscount) }}</span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-500">
