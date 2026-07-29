@@ -31,15 +31,24 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // 1. Seed Users
+        $superAdmin = User::factory()->create([
+            'name' => 'Super Admin',
+            'email' => 'superadmin@shopease.com',
+            'role' => 'super_admin',
+            'password' => Hash::make('password'),
+        ]);
+
         $admin = User::factory()->create([
             'name' => 'Admin User',
             'email' => 'admin@shopease.com',
+            'role' => 'admin',
             'password' => Hash::make('password'),
         ]);
 
         $customer = User::factory()->create([
             'name' => 'Test Customer',
             'email' => 'customer@shopease.com',
+            'role' => 'customer',
             'password' => Hash::make('password'),
         ]);
 

@@ -27,6 +27,7 @@ const avatarPreview = ref<string | null>(null);
 const form = useForm({
     name: '',
     email: '',
+    role: 'customer',
     password: '',
     password_confirmation: '',
     avatar: null as File | null,
@@ -66,6 +67,50 @@ const submit = () => {
                     </label>
                 </div>
                 <p class="text-[11px] text-gray-500 font-medium">Upload profile picture (optional)</p>
+            </div>
+
+            <!-- Role Selector -->
+            <div class="grid gap-2">
+                <Label>Account Type (Role)</Label>
+                <div class="grid grid-cols-3 gap-2">
+                    <button
+                        type="button"
+                        @click="form.role = 'customer'"
+                        :class="[
+                            'px-3 py-2 text-xs font-semibold rounded-lg border transition text-center',
+                            form.role === 'customer'
+                                ? 'bg-violet-50 border-violet-600 text-violet-700 shadow-sm'
+                                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                        ]"
+                    >
+                        Customer
+                    </button>
+                    <button
+                        type="button"
+                        @click="form.role = 'admin'"
+                        :class="[
+                            'px-3 py-2 text-xs font-semibold rounded-lg border transition text-center',
+                            form.role === 'admin'
+                                ? 'bg-violet-50 border-violet-600 text-violet-700 shadow-sm'
+                                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                        ]"
+                    >
+                        Admin
+                    </button>
+                    <button
+                        type="button"
+                        @click="form.role = 'super_admin'"
+                        :class="[
+                            'px-3 py-2 text-xs font-semibold rounded-lg border transition text-center',
+                            form.role === 'super_admin'
+                                ? 'bg-violet-50 border-violet-600 text-violet-700 shadow-sm'
+                                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                        ]"
+                    >
+                        Super Admin
+                    </button>
+                </div>
+                <InputError :message="form.errors.role" />
             </div>
 
             <div class="grid gap-2">

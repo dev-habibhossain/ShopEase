@@ -22,6 +22,7 @@ class CreateNewUser implements CreatesNewUsers
         Validator::make($input, [
             ...$this->profileRules(),
             'password' => $this->passwordRules(),
+            'role' => ['nullable', 'string', 'in:customer,admin,super_admin'],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
         ])->validate();
 
@@ -31,10 +32,16 @@ class CreateNewUser implements CreatesNewUsers
             $avatarPath = '/storage/'.$path;
         }
 
+        $role = $input['role'] ?? 'customer';
+        if (! in_array($role, ['customer', 'admin', 'super_admin'], true)) {
+            $role = 'customer';
+        }
+
         return User::create([
             'name' => $input['name'],
             'email' => $input['email'],
             'password' => $input['password'],
+            'role' => $role,
             'avatar' => $avatarPath,
         ]);
     }
