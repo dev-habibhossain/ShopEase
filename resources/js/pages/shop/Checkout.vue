@@ -244,18 +244,47 @@ const handleFormSubmit = () => {
     }
 };
 
-const processDirectOrder = () => {
+const processDirectOrder = async () => {
     isProcessing.value = true;
-    setTimeout(() => {
+    try {
+        const response = await fetch('/checkout/process', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+            },
+            body: JSON.stringify({
+                cart: cart.value,
+                fullName: fullName.value,
+                phone: phone.value,
+                email: email.value,
+                district: district.value,
+                area: area.value,
+                address: address.value,
+                notes: notes.value,
+                deliveryCharge: deliveryCharge.value,
+            }),
+        });
+
+        const data = await response.json();
         isProcessing.value = false;
-        isOrderSuccess.value = true;
-        finalPaymentMethod.value = 'Cash on Delivery';
-        finalTotal.value = grandTotal.value;
-        orderId.value = 'SE-' + new Date().getFullYear() + '-' + Math.floor(100000 + Math.random() * 900000);
-        clearCart();
-        showToast('Order placed successfully!');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 1000);
+
+        if (data.success) {
+            isOrderSuccess.value = true;
+            finalPaymentMethod.value = 'Cash on Delivery';
+            finalTotal.value = data.total;
+            orderId.value = data.order_number;
+            clearCart();
+            showToast('Order placed successfully!');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            showToast(data.message || 'Failed to place order.');
+        }
+    } catch (e) {
+        isProcessing.value = false;
+        showToast('An error occurred while placing order.');
+    }
 };
 
 const initiateStripeCheckoutSession = async () => {
@@ -351,9 +380,10 @@ const formatPrice = (price: number) => {
                 </div>
             </div>
 
-            <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-                <Link href="/shop" class="rounded-lg bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 transition">Continue Shopping</Link>
-                <Link href="/dashboard" class="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">View Order</Link>
+            <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+                <Link :href="`/track-order?order_number=${orderId}`" class="rounded-xl bg-primary-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 transition">Track Your Order</Link>
+                <Link href="/shop" class="rounded-xl border border-gray-300 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">Continue Shopping</Link>
+                <Link v-if="authUser" href="/dashboard/orders" class="rounded-xl border border-gray-300 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">Dashboard Orders</Link>
             </div>
         </div>
 

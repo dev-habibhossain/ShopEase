@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Storefront;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\OrderItem;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -95,6 +96,17 @@ class StripeCheckoutController extends Controller
             'status' => 'processing',
             'placed_at' => now(),
         ]);
+
+        foreach ($cart as $item) {
+            OrderItem::create([
+                'order_id' => $order->id,
+                'product_id' => $item['id'] ?? null,
+                'product_name' => $item['name'],
+                'unit_price' => $item['price'],
+                'quantity' => $item['qty'],
+                'line_total' => $item['price'] * $item['qty'],
+            ]);
+        }
 
         return response()->json([
             'url' => route('checkout.stripe.success').'?order_id='.$order->order_number.'&total='.$total,

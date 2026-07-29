@@ -201,6 +201,11 @@ const currentYear = new Date().getFullYear();
                         </div>
 
                         <Link
+                            href="/track-order"
+                            class="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-900"
+                            >Track Order</Link
+                        >
+                        <Link
                             href="/help-support"
                             class="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-900"
                             >Help & Support</Link
@@ -602,10 +607,10 @@ const currentYear = new Date().getFullYear();
                         </h3>
                         <ul class="mt-2.5 space-y-1.5 text-xs">
                             <li>
-                                <a
-                                    href="#"
+                                <Link
+                                    href="/track-order"
                                     class="text-gray-400 transition hover:text-white"
-                                    >Track Your Order</a
+                                    >Track Your Order</Link
                                 >
                             </li>
                             <li>
