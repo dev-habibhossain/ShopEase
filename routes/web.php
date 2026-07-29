@@ -23,6 +23,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', HomeController::class)->name('home');
 Route::get('product-details/{slug}', [ProductDetailsController::class, 'show'])->name('product.details');
 Route::post('product-details/{slug}/reviews', [ProductDetailsController::class, 'storeReview'])->name('product.reviews.store');
+Route::put('product-details/{slug}/reviews/{review}', [ProductDetailsController::class, 'updateReview'])->name('product.reviews.update');
+Route::delete('product-details/{slug}/reviews/{review}', [ProductDetailsController::class, 'destroyReview'])->name('product.reviews.destroy');
 Route::get('shop', ShopController::class)->name('shop');
 Route::get('cart', CartController::class)->name('cart');
 Route::get('checkout', [CheckoutController::class, 'index'])->name('checkout');

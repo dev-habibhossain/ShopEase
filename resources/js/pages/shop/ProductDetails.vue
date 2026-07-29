@@ -29,6 +29,7 @@ interface ProductProp {
 
 interface Review {
     id?: number;
+    userId?: number | null;
     name: string;
     rating: number;
     date: string;
@@ -78,8 +79,141 @@ const selectedImageIndex = ref(0);
 const qty = ref(1);
 const activeTab = ref<'desc' | 'reviews'>('desc');
 
-// Reviews are seeded from props; client-side submissions prepend to this list
+// Reviews state synced with props.reviews
 const localReviews = ref<Review[]>([...props.reviews]);
+
+watch(
+    () => props.reviews,
+    (newReviews) => {
+        localReviews.value = [...newReviews];
+    },
+    { deep: true }
+);
+
+// Review Form states & ref
+const page = usePage();
+const authUser = computed(() => (page.props.auth as any)?.user);
+const reviewName = ref(authUser.value?.name || 'Anonymous');
+const reviewText = ref('');
+const selectedRating = ref(0);
+const hoverRating = ref(0);
+const isSubmitting = ref(false);
+const reviewFormRef = ref<HTMLElement | null>(null);
+
+const hasUserReview = computed(() => Boolean(props.userReview));
+
+const resetReviewForm = () => {
+    selectedRating.value = 0;
+    hoverRating.value = 0;
+    reviewText.value = '';
+    reviewName.value = authUser.value?.name || 'Anonymous';
+};
+
+// Edit Modal State
+const showEditModal = ref(false);
+const editingReview = ref<Review | null>(null);
+const editRating = ref(0);
+const editHoverRating = ref(0);
+const editComment = ref('');
+const isUpdatingReview = ref(false);
+
+const openEditModal = (review: Review) => {
+    editingReview.value = review;
+    editRating.value = review.rating;
+    editHoverRating.value = 0;
+    editComment.value = review.text;
+    showEditModal.value = true;
+};
+
+const closeEditModal = () => {
+    showEditModal.value = false;
+    editingReview.value = null;
+    editRating.value = 0;
+    editComment.value = '';
+};
+
+const handleUpdateReviewSubmit = () => {
+    if (!editingReview.value) return;
+    if (editRating.value === 0) {
+        showToast('Please select a star rating');
+        return;
+    }
+    if (!editComment.value.trim()) {
+        showToast('Please write a review comment');
+        return;
+    }
+
+    isUpdatingReview.value = true;
+    const targetId = editingReview.value.id;
+
+    const idx = localReviews.value.findIndex(
+        (r) => (targetId && r.id === targetId) || (r.userId && r.userId === authUser.value?.id)
+    );
+    if (idx !== -1) {
+        localReviews.value[idx] = {
+            ...localReviews.value[idx],
+            rating: editRating.value,
+            text: editComment.value,
+        };
+    }
+
+    router.put(
+        `/product-details/${props.product.slug}/reviews/${targetId || 0}`,
+        {
+            rating: editRating.value,
+            comment: editComment.value,
+        },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                showToast('Review updated successfully!');
+                isUpdatingReview.value = false;
+                closeEditModal();
+                activeTab.value = 'reviews';
+            },
+            onError: () => {
+                showToast('Failed to update review. Please try again.');
+                isUpdatingReview.value = false;
+            },
+        }
+    );
+};
+
+const handleReviewDelete = (reviewId?: number) => {
+    if (!reviewId) return;
+    if (!confirm('Are you sure you want to delete your review?')) return;
+
+    activeTab.value = 'reviews';
+
+    // Optimistically remove from localReviews
+    localReviews.value = localReviews.value.filter(
+        (r) => r.id !== reviewId && r.userId !== authUser.value?.id
+    );
+
+    router.delete(
+        `/product-details/${props.product.slug}/reviews/${reviewId}`,
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                showToast('Your review has been deleted.');
+                resetReviewForm();
+                activeTab.value = 'reviews';
+            },
+            onError: () => {
+                showToast('Failed to delete review.');
+                activeTab.value = 'reviews';
+            },
+        }
+    );
+};
+
+watch(authUser, (user) => {
+    if (user?.name && (!reviewName.value || reviewName.value === 'Anonymous')) {
+        reviewName.value = user.name;
+    }
+});
 
 // Computed discount percentage
 const discountPercent = computed(() => {
@@ -128,33 +262,7 @@ onUnmounted(() => {
     }
 });
 
-// Review Form states
-const page = usePage();
-const authUser = computed(() => (page.props.auth as any)?.user);
-const reviewName = ref(authUser.value?.name || 'Anonymous');
-const reviewText = ref(props.userReview?.comment || '');
-const selectedRating = ref(props.userReview?.rating || 0);
-const hoverRating = ref(0);
-const isSubmitting = ref(false);
 
-const hasUserReview = computed(() => Boolean(props.userReview));
-
-watch(
-    () => props.userReview,
-    (newReview) => {
-        if (newReview) {
-            selectedRating.value = newReview.rating;
-            reviewText.value = newReview.comment;
-        }
-    },
-    { immediate: true }
-);
-
-watch(authUser, (user) => {
-    if (user?.name && (!reviewName.value || reviewName.value === 'Anonymous')) {
-        reviewName.value = user.name;
-    }
-});
 
 // Quantity modifiers
 const incrementQty = () => {
@@ -242,7 +350,25 @@ const handleReviewSubmit = () => {
         return;
     }
 
+    activeTab.value = 'reviews';
     isSubmitting.value = true;
+
+    // Optimistically update local reviews list instantly
+    const today = new Date();
+    const formattedDate = today.toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+    });
+
+    localReviews.value.unshift({
+        userId: authUser.value?.id || null,
+        name: reviewName.value || authUser.value?.name || 'Anonymous',
+        rating: selectedRating.value,
+        date: formattedDate,
+        verified: false,
+        text: reviewText.value,
+    });
 
     router.post(
         `/product-details/${props.product.slug}/reviews`,
@@ -253,13 +379,17 @@ const handleReviewSubmit = () => {
         },
         {
             preserveScroll: true,
+            preserveState: true,
             onSuccess: () => {
-                showToast(hasUserReview.value ? 'Review updated successfully!' : 'Thank you! Your review has been submitted.');
+                showToast('Thank you! Your review has been submitted.');
                 isSubmitting.value = false;
+                activeTab.value = 'reviews';
+                resetReviewForm();
             },
             onError: () => {
                 showToast('Failed to save review. Please try again.');
                 isSubmitting.value = false;
+                activeTab.value = 'reviews';
             },
         }
     );
@@ -747,6 +877,12 @@ const formatPrice = (price: number) => {
                                             >
                                                 {{ r.name }}
                                                 <span
+                                                    v-if="authUser && r.userId === authUser.id"
+                                                    class="ml-1 rounded bg-violet-100 px-1.5 py-0.5 align-middle text-[10px] font-semibold text-violet-700 shadow-xs"
+                                                >
+                                                    You
+                                                </span>
+                                                <span
                                                     v-if="r.verified"
                                                     class="ml-1 rounded bg-green-50 px-1.5 py-0.5 align-middle text-[10px] font-medium text-green-700 shadow-sm"
                                                 >
@@ -773,9 +909,56 @@ const formatPrice = (price: number) => {
                                             </div>
                                         </div>
                                     </div>
-                                    <span class="text-xs text-gray-400">{{
-                                        r.date
-                                    }}</span>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs text-gray-400 me-1">{{
+                                            r.date
+                                        }}</span>
+                                        <div
+                                            v-if="authUser && r.userId === authUser.id"
+                                            class="flex items-center gap-1"
+                                        >
+                                            <button
+                                                @click="openEditModal(r)"
+                                                type="button"
+                                                title="Edit Review"
+                                                class="rounded-lg p-1 text-gray-400 transition hover:bg-primary-50 hover:text-primary-600 focus:outline-none"
+                                            >
+                                                <svg
+                                                    class="h-4 w-4"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path
+                                                        stroke-linecap="round"
+                                                        stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                                    />
+                                                </svg>
+                                            </button>
+                                            <button
+                                                @click="handleReviewDelete(r.id)"
+                                                type="button"
+                                                title="Delete Review"
+                                                class="rounded-lg p-1 text-gray-400 transition hover:bg-red-50 hover:text-red-600 focus:outline-none"
+                                            >
+                                                <svg
+                                                    class="h-4 w-4"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path
+                                                        stroke-linecap="round"
+                                                        stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                                    />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                                 <p
                                     class="mt-3 text-sm leading-relaxed text-gray-600"
@@ -787,10 +970,11 @@ const formatPrice = (price: number) => {
 
                         <!-- Write a review form -->
                         <div
+                            ref="reviewFormRef"
                             class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
                         >
                             <h3 class="text-lg font-semibold text-gray-900">
-                                {{ hasUserReview ? 'Edit Your Review' : 'Write a review' }}
+                                Write a review
                             </h3>
                             <p class="mt-1 text-sm text-gray-500">
                                 Share your rating and feedback for this product.
@@ -1136,6 +1320,103 @@ const formatPrice = (price: number) => {
             </div>
         </div>
     </Transition>
+
+    <!-- Edit Review Modal -->
+    <Teleport to="body">
+        <div
+            v-if="showEditModal"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs transition-opacity"
+            @click.self="closeEditModal"
+        >
+            <div
+                class="w-full max-w-lg overflow-hidden rounded-2xl bg-white p-6 shadow-2xl transition-all"
+            >
+                <div class="flex items-center justify-between border-b border-gray-100 pb-4">
+                    <h3 class="text-lg font-bold text-gray-900">Update Your Review</h3>
+                    <button
+                        @click="closeEditModal"
+                        type="button"
+                        class="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                    >
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <form @submit.prevent="handleUpdateReviewSubmit" class="mt-4 space-y-4">
+                    <!-- Rating selector -->
+                    <div>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700">Your rating</label>
+                        <div class="flex items-center gap-1">
+                            <button
+                                v-for="star in 5"
+                                :key="star"
+                                type="button"
+                                @click="editRating = star"
+                                @mouseenter="editHoverRating = star"
+                                @mouseleave="editHoverRating = 0"
+                                class="p-0.5 focus:outline-none"
+                            >
+                                <svg
+                                    :class="[
+                                        'h-7 w-7 transition',
+                                        star <= (editHoverRating || editRating)
+                                            ? 'text-accent-500 fill-accent-500'
+                                            : 'text-gray-300',
+                                    ]"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                >
+                                    <path
+                                        d="M9.05 2.927c.3-.921 1.6-.921 1.9 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.368 2.447a1 1 0 00-.364 1.118l1.287 3.957c.3.922-.755 1.688-1.539 1.118l-3.366-2.447a1 1 0 00-1.176 0l-3.366 2.447c-.783.57-1.838-.196-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.354 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.951-.69l1.286-3.957z"
+                                    />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Comment textarea -->
+                    <div>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700">Your Feedback</label>
+                        <textarea
+                            v-model="editComment"
+                            rows="4"
+                            class="w-full rounded-xl border border-gray-300 p-3 text-sm focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600"
+                            placeholder="Update your review feedback..."
+                        ></textarea>
+                    </div>
+
+                    <!-- Action buttons -->
+                    <div class="mt-6 flex items-center justify-end gap-3 border-t border-gray-100 pt-4">
+                        <button
+                            @click="closeEditModal"
+                            type="button"
+                            class="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            :disabled="isUpdatingReview"
+                            class="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-primary-700 disabled:opacity-50"
+                        >
+                            <svg
+                                v-if="isUpdatingReview"
+                                class="h-4 w-4 animate-spin"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                            >
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                            <span>{{ isUpdatingReview ? 'Saving...' : 'Update Review' }}</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </Teleport>
 </template>
 
 <style scoped>

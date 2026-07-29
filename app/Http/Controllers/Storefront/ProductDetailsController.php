@@ -48,6 +48,7 @@ class ProductDetailsController extends Controller
         // Shape reviews for the frontend
         $reviews = $product->reviews->map(fn ($r) => [
             'id' => $r->id,
+            'userId' => $r->user_id,
             'name' => $r->user?->name ?? 'Anonymous',
             'rating' => $r->rating,
             'date' => $r->created_at->format('j M Y'),
@@ -144,32 +145,65 @@ class ProductDetailsController extends Controller
             if (! empty($validated['name']) && $validated['name'] !== $user->name) {
                 $user->update(['name' => $validated['name']]);
             }
-
-            Review::updateOrCreate(
-                [
-                    'product_id' => $product->id,
-                    'user_id' => $user->id,
-                ],
-                [
-                    'rating' => $validated['rating'],
-                    'comment' => $validated['comment'],
-                    'is_approved' => true,
-                    'approved_at' => now(),
-                ]
-            );
-            $message = 'Your review has been saved successfully!';
-        } else {
-            Review::create([
-                'product_id' => $product->id,
-                'user_id' => null,
-                'rating' => $validated['rating'],
-                'comment' => $validated['comment'],
-                'is_approved' => true,
-                'approved_at' => now(),
-            ]);
-            $message = 'Thank you! Your review has been submitted.';
         }
 
-        return redirect()->back()->with('success', $message);
+        Review::create([
+            'product_id' => $product->id,
+            'user_id' => $user ? $user->id : null,
+            'rating' => $validated['rating'],
+            'comment' => $validated['comment'],
+            'is_approved' => true,
+            'approved_at' => now(),
+        ]);
+
+        return redirect()->back()->with('success', 'Thank you! Your review has been submitted.');
+    }
+
+    /**
+     * Update an existing review.
+     */
+    public function updateReview(Request $request, string $slug, int $reviewId): RedirectResponse
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            abort(HttpResponse::HTTP_FORBIDDEN);
+        }
+
+        $validated = $request->validate([
+            'rating' => 'required|integer|min:1|max:5',
+            'comment' => 'required|string|max:1000',
+        ]);
+
+        $review = Review::where('id', $reviewId)
+            ->where('user_id', $user->id)
+            ->firstOrFail();
+
+        $review->update([
+            'rating' => $validated['rating'],
+            'comment' => $validated['comment'],
+        ]);
+
+        return redirect()->back()->with('success', 'Review updated successfully!');
+    }
+
+    /**
+     * Delete a user's review.
+     */
+    public function destroyReview(Request $request, string $slug, int $reviewId): RedirectResponse
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            abort(HttpResponse::HTTP_FORBIDDEN);
+        }
+
+        $review = Review::where('id', $reviewId)
+            ->where('user_id', $user->id)
+            ->firstOrFail();
+
+        $review->delete();
+
+        return redirect()->back()->with('success', 'Your review has been deleted.');
     }
 }
