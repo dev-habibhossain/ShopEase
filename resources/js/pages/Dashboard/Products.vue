@@ -122,8 +122,10 @@ const openEditModal = (product: any) => {
 
     const primaryImg = product.images?.find((img: any) => img.is_primary) || product.images?.[0];
     if (primaryImg) {
-        imagePreview.value = primaryImg.image_path;
-        form.image_url = primaryImg.image_path;
+        const path = primaryImg.image_path;
+        const formattedPath = (path.startsWith('http') || path.startsWith('/storage/')) ? path : `https://images.unsplash.com/${path}?auto=format&fit=crop&w=300&q=80`;
+        imagePreview.value = formattedPath;
+        form.image_url = path;
     } else {
         imagePreview.value = null;
         form.image_url = '';
@@ -158,7 +160,10 @@ const deleteProduct = (id: number) => {
 
 const getProductThumbnail = (product: any) => {
     const primaryImg = product.images?.find((img: any) => img.is_primary) || product.images?.[0];
-    return primaryImg?.image_path || null;
+    const path = primaryImg?.image_path || (product as any).primary_image || null;
+    if (!path) return null;
+    if (path.startsWith('http') || path.startsWith('/storage/')) return path;
+    return `https://images.unsplash.com/${path}?auto=format&fit=crop&w=120&q=70`;
 };
 </script>
 
@@ -364,7 +369,7 @@ const getProductThumbnail = (product: any) => {
                             <img :src="imagePreview" class="w-14 h-14 object-cover rounded-md border border-gray-300" />
                             <div class="min-w-0 flex-1">
                                 <p class="text-xs font-bold text-gray-800">Image Selected</p>
-                                <p class="text-[10px] text-emerald-600 font-semibold">Ready for upload</p>
+                                <p class="text-[10px] text-emerald-600 font-semibold">Ready for save</p>
                             </div>
                             <button type="button" @click="imagePreview = null; form.image = null; form.image_url = ''" class="text-xs text-red-600 hover:underline">
                                 Remove
