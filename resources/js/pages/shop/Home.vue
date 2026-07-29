@@ -94,12 +94,12 @@ onUnmounted(() => {
 });
 
 // Wishlist interaction
-const handleWishlistToggle = (productName: string) => {
-    const isAdded = toggleWish(productName);
+const handleWishlistToggle = (product: Product) => {
+    const isAdded = toggleWish(product);
     if (isAdded) {
-        showToast(`Added to wishlist: ${productName} ❤️`);
+        showToast(`Added to wishlist: ${product.name} ❤️`);
     } else {
-        showToast(`Removed from wishlist: ${productName}`);
+        showToast(`Removed from wishlist: ${product.name}`);
     }
 };
 
@@ -119,17 +119,27 @@ const productImageUrl = (img: string) => {
     if (!img) {
         return 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=600&q=70';
     }
-    if (img.startsWith('http')) {
+    if (img.startsWith('http') || img.startsWith('/storage/')) {
         return img;
     }
     return `https://images.unsplash.com/${img}?auto=format&fit=crop&w=600&q=70`;
+};
+
+const categoryImageUrl = (img: string) => {
+    if (!img) {
+        return 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=400&q=70';
+    }
+    if (img.startsWith('http') || img.startsWith('/storage/')) {
+        return img;
+    }
+    return `https://images.unsplash.com/${img}?auto=format&fit=crop&w=400&q=70`;
 };
 
 const heroImageUrl = (img: string) => {
     if (!img) {
         return '';
     }
-    if (img.startsWith('http')) {
+    if (img.startsWith('http') || img.startsWith('/storage/')) {
         return img;
     }
     return `https://images.unsplash.com/${img}?auto=format&fit=crop&w=1920&q=70`;
@@ -461,7 +471,7 @@ const formatPrice = (price: number) => {
                     >
                         <img
                             v-if="cat.image"
-                            :src="cat.image.startsWith('http') ? cat.image : `https://images.unsplash.com/${cat.image}?auto=format&fit=crop&w=400&q=70`"
+                            :src="categoryImageUrl(cat.image)"
                             :alt="cat.name"
                             loading="lazy"
                             class="h-full w-full object-cover transition duration-500 ease-out group-hover:scale-110"
@@ -569,13 +579,13 @@ const formatPrice = (price: number) => {
                             >
                         </div>
                         <button
-                            @click="handleWishlistToggle(p.name)"
+                            @click="handleWishlistToggle(p)"
                             type="button"
                             aria-label="Add to wishlist"
-                            :aria-pressed="hasWish(p.name)"
+                            :aria-pressed="hasWish(p.id || p.name)"
                             :class="[
                                 'wish-btn absolute top-2 right-2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-sm transition duration-200 hover:scale-110 hover:bg-white focus:ring-2 focus:ring-primary-600 focus:outline-none active:scale-95 sm:translate-y-1 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100',
-                                hasWish(p.name)
+                                hasWish(p.id || p.name)
                                     ? 'text-red-600'
                                     : 'text-gray-700 hover:text-red-600',
                             ]"
@@ -583,7 +593,7 @@ const formatPrice = (price: number) => {
                             <svg
                                 class="h-5 w-5"
                                 :fill="
-                                    hasWish(p.name) ? 'currentColor' : 'none'
+                                    hasWish(p.id || p.name) ? 'currentColor' : 'none'
                                 "
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
@@ -798,13 +808,13 @@ const formatPrice = (price: number) => {
                             >
                         </div>
                         <button
-                            @click="handleWishlistToggle(p.name)"
+                            @click="handleWishlistToggle(p)"
                             type="button"
                             aria-label="Add to wishlist"
-                            :aria-pressed="hasWish(p.name)"
+                            :aria-pressed="hasWish(p.id || p.name)"
                             :class="[
                                 'wish-btn absolute top-2 right-2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-sm transition duration-200 hover:scale-110 hover:bg-white focus:ring-2 focus:ring-primary-600 focus:outline-none active:scale-95 sm:translate-y-1 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100',
-                                hasWish(p.name)
+                                hasWish(p.id || p.name)
                                     ? 'text-red-600'
                                     : 'text-gray-700 hover:text-red-600',
                             ]"
@@ -812,7 +822,7 @@ const formatPrice = (price: number) => {
                             <svg
                                 class="h-5 w-5"
                                 :fill="
-                                    hasWish(p.name) ? 'currentColor' : 'none'
+                                    hasWish(p.id || p.name) ? 'currentColor' : 'none'
                                 "
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"

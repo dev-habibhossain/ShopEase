@@ -58,6 +58,12 @@ const closeMobileMenu = () => {
 };
 
 const currentYear = new Date().getFullYear();
+
+const getItemImg = (img?: string) => {
+    if (!img) return 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=120&q=70';
+    if (img.startsWith('http') || img.startsWith('/storage/')) return img;
+    return `https://images.unsplash.com/${img}?auto=format&fit=crop&w=120&q=70`;
+};
 </script>
 
 <template>
@@ -200,6 +206,11 @@ const currentYear = new Date().getFullYear();
                             </transition>
                         </div>
 
+                        <Link
+                            href="/track-order"
+                            class="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-900"
+                            >Track Order</Link
+                        >
                         <Link
                             href="/help-support"
                             class="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-900"
@@ -602,10 +613,10 @@ const currentYear = new Date().getFullYear();
                         </h3>
                         <ul class="mt-2.5 space-y-1.5 text-xs">
                             <li>
-                                <a
-                                    href="#"
+                                <Link
+                                    href="/track-order"
                                     class="text-gray-400 transition hover:text-white"
-                                    >Track Your Order</a
+                                    >Track Your Order</Link
                                 >
                             </li>
                             <li>
@@ -821,7 +832,7 @@ const currentYear = new Date().getFullYear();
                             class="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-100"
                         >
                             <img
-                                :src="`https://images.unsplash.com/${item.img}?auto=format&fit=crop&w=120&q=70`"
+                                :src="getItemImg(item.img)"
                                 :alt="item.name"
                                 class="h-full w-full object-cover"
                             />

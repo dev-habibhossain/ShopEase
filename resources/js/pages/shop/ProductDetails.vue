@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { Head, Link, usePage, router } from '@inertiajs/vue3';
 import { useCart } from '@/composables/useCart';
 import { useWishlist } from '@/composables/useWishlist';
 import { useToast } from '@/composables/useToast';
@@ -28,11 +28,19 @@ interface ProductProp {
 }
 
 interface Review {
+    id?: number;
+    userId?: number | null;
     name: string;
     rating: number;
     date: string;
     verified: boolean;
     text: string;
+}
+
+interface UserReview {
+    id: number;
+    rating: number;
+    comment: string;
 }
 
 interface Breakdown {
@@ -56,6 +64,7 @@ interface RelatedProduct {
 const props = defineProps<{
     product: ProductProp;
     reviews: Review[];
+    userReview?: UserReview | null;
     breakdown: Breakdown[];
     relatedProducts: RelatedProduct[];
 }>();
@@ -68,10 +77,137 @@ const { showToast } = useToast();
 // Interactive states
 const selectedImageIndex = ref(0);
 const qty = ref(1);
-const activeTab = ref<'desc' | 'reviews'>('desc');
 
-// Reviews are seeded from props; client-side submissions prepend to this list
+// Reviews state synced with props.reviews
 const localReviews = ref<Review[]>([...props.reviews]);
+
+watch(
+    () => props.reviews,
+    (newReviews) => {
+        localReviews.value = [...newReviews];
+    },
+    { deep: true }
+);
+
+// Review Form states & ref
+const page = usePage();
+const authUser = computed(() => (page.props.auth as any)?.user);
+const reviewName = ref(authUser.value?.name || 'Anonymous');
+const reviewText = ref('');
+const selectedRating = ref(0);
+const hoverRating = ref(0);
+const isSubmitting = ref(false);
+const reviewFormRef = ref<HTMLElement | null>(null);
+
+const hasUserReview = computed(() => Boolean(props.userReview));
+
+const resetReviewForm = () => {
+    selectedRating.value = 0;
+    hoverRating.value = 0;
+    reviewText.value = '';
+    reviewName.value = authUser.value?.name || 'Anonymous';
+};
+
+// Edit Modal State
+const showEditModal = ref(false);
+const editingReview = ref<Review | null>(null);
+const editRating = ref(0);
+const editHoverRating = ref(0);
+const editComment = ref('');
+const isUpdatingReview = ref(false);
+
+const openEditModal = (review: Review) => {
+    editingReview.value = review;
+    editRating.value = review.rating;
+    editHoverRating.value = 0;
+    editComment.value = review.text;
+    showEditModal.value = true;
+};
+
+const closeEditModal = () => {
+    showEditModal.value = false;
+    editingReview.value = null;
+    editRating.value = 0;
+    editComment.value = '';
+};
+
+const handleUpdateReviewSubmit = () => {
+    if (!editingReview.value) return;
+    if (editRating.value === 0) {
+        showToast('Please select a star rating');
+        return;
+    }
+    if (!editComment.value.trim()) {
+        showToast('Please write a review comment');
+        return;
+    }
+
+    isUpdatingReview.value = true;
+    const targetId = editingReview.value.id;
+
+    const idx = localReviews.value.findIndex(
+        (r) => (targetId && r.id === targetId) || (r.userId && r.userId === authUser.value?.id)
+    );
+    if (idx !== -1) {
+        localReviews.value[idx] = {
+            ...localReviews.value[idx],
+            rating: editRating.value,
+            text: editComment.value,
+        };
+    }
+
+    router.put(
+        `/product-details/${props.product.slug}/reviews/${targetId || 0}`,
+        {
+            rating: editRating.value,
+            comment: editComment.value,
+        },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                showToast('Review updated successfully!');
+                isUpdatingReview.value = false;
+                closeEditModal();
+            },
+            onError: () => {
+                showToast('Failed to update review. Please try again.');
+                isUpdatingReview.value = false;
+            },
+        }
+    );
+};
+
+const handleReviewDelete = (reviewId?: number) => {
+    if (!reviewId) return;
+    if (!confirm('Are you sure you want to delete your review?')) return;
+
+    // Optimistically remove from localReviews
+    localReviews.value = localReviews.value.filter(
+        (r) => r.id !== reviewId && r.userId !== authUser.value?.id
+    );
+
+    router.delete(
+        `/product-details/${props.product.slug}/reviews/${reviewId}`,
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                showToast('Your review has been deleted.');
+                resetReviewForm();
+            },
+            onError: () => {
+                showToast('Failed to delete review.');
+            },
+        }
+    );
+};
+
+watch(authUser, (user) => {
+    if (user?.name && (!reviewName.value || reviewName.value === 'Anonymous')) {
+        reviewName.value = user.name;
+    }
+});
 
 // Computed discount percentage
 const discountPercent = computed(() => {
@@ -86,7 +222,7 @@ const imageUrl = (path: string, size: number = 600) => {
     if (!path) {
         return `https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=${size}&q=75`;
     }
-    if (path.startsWith('http')) {
+    if (path.startsWith('http') || path.startsWith('/storage/')) {
         return path;
     }
     return `https://images.unsplash.com/${path}?auto=format&fit=crop&w=${size}&q=75`;
@@ -120,11 +256,7 @@ onUnmounted(() => {
     }
 });
 
-// Review Form states
-const reviewName = ref('');
-const reviewText = ref('');
-const selectedRating = ref(0);
-const hoverRating = ref(0);
+
 
 // Quantity modifiers
 const incrementQty = () => {
@@ -149,12 +281,28 @@ const handleQtyBlur = () => {
 
 // Wishlist interaction
 const handleWishlistToggle = () => {
-    const isAdded = toggleWish(props.product.name);
+    const isAdded = toggleWish({
+        id: props.product.id,
+        name: props.product.name,
+        slug: props.product.slug,
+        price: props.product.price,
+        oldPrice: props.product.oldPrice,
+        img: primaryImagePath.value,
+        rating: props.product.rating,
+        reviews: props.product.reviewCount,
+        inStock: props.product.inStock,
+        category: props.product.category,
+    });
     if (isAdded) {
         showToast('Added to wishlist ❤️');
     } else {
         showToast('Removed from wishlist');
     }
+};
+
+const handleRelatedWishlistToggle = (product: RelatedProduct) => {
+    const isAdded = toggleWish(product);
+    showToast(isAdded ? 'Added to wishlist ❤️' : 'Removed from wishlist');
 };
 
 // Cart interactions
@@ -170,9 +318,12 @@ const handleBuyNow = () => {
     showToast(`Proceeding to checkout with ${qty.value} item(s) 💳`);
 };
 
-// Tabs helper
-const switchTab = (tab: 'desc' | 'reviews') => {
-    activeTab.value = tab;
+// Scroll helper
+const scrollToReviews = () => {
+    const el = document.getElementById('reviews-section');
+    if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+    }
 };
 
 // Star hover & click selection
@@ -184,13 +335,21 @@ const selectRating = (rating: number) => {
     selectedRating.value = rating;
 };
 
-// Review Submission (client-side only, adds to localReviews)
+// Review Submission via Inertia POST
 const handleReviewSubmit = () => {
     if (selectedRating.value === 0) {
         showToast('Please select a star rating');
         return;
     }
 
+    if (!reviewText.value.trim()) {
+        showToast('Please write a review comment');
+        return;
+    }
+
+    isSubmitting.value = true;
+
+    // Optimistically update local reviews list instantly
     const today = new Date();
     const formattedDate = today.toLocaleDateString('en-GB', {
         day: 'numeric',
@@ -199,20 +358,35 @@ const handleReviewSubmit = () => {
     });
 
     localReviews.value.unshift({
-        name: reviewName.value || 'Anonymous',
+        userId: authUser.value?.id || null,
+        name: reviewName.value || authUser.value?.name || 'Anonymous',
         rating: selectedRating.value,
         date: formattedDate,
         verified: false,
         text: reviewText.value,
     });
 
-    showToast('Thanks! Your review is pending approval.');
-
-    // Reset fields
-    reviewName.value = '';
-    reviewText.value = '';
-    selectedRating.value = 0;
-    hoverRating.value = 0;
+    router.post(
+        `/product-details/${props.product.slug}/reviews`,
+        {
+            rating: selectedRating.value,
+            comment: reviewText.value,
+            name: reviewName.value,
+        },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                showToast('Thank you! Your review has been submitted.');
+                isSubmitting.value = false;
+                resetReviewForm();
+            },
+            onError: () => {
+                showToast('Failed to save review. Please try again.');
+                isSubmitting.value = false;
+            },
+        }
+    );
 };
 
 // Helpers
@@ -327,8 +501,8 @@ const formatPrice = (price: number) => {
                         product.rating
                     }}</span>
                     <button
-                        @click="switchTab('reviews')"
-                        class="text-sm text-gray-500 transition hover:text-primary-600"
+                        @click="scrollToReviews"
+                        class="text-sm text-gray-500 transition hover:text-primary-600 cursor-pointer"
                     >
                         {{ product.reviewCount }} reviews
                     </button>
@@ -470,10 +644,10 @@ const formatPrice = (price: number) => {
                         @click="handleWishlistToggle"
                         type="button"
                         aria-label="Add to wishlist"
-                        :aria-pressed="hasWish(product.name)"
+                        :aria-pressed="hasWish(product.id || product.name)"
                         :class="[
                             'inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border transition focus:ring-2 focus:ring-primary-600 focus:outline-none',
-                            hasWish(product.name)
+                            hasWish(product.id || product.name)
                                 ? 'border-red-600 text-red-600'
                                 : 'border-gray-300 text-gray-600 hover:border-red-300 hover:text-red-600',
                         ]"
@@ -481,7 +655,7 @@ const formatPrice = (price: number) => {
                         <svg
                             class="h-5 w-5"
                             :fill="
-                                hasWish(product.name) ? 'currentColor' : 'none'
+                                hasWish(product.id || product.name) ? 'currentColor' : 'none'
                             "
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -568,61 +742,39 @@ const formatPrice = (price: number) => {
         </div>
     </section>
 
-    <!-- ============================ DETAILS TABS ============================ -->
+    <!-- ============================ DETAILS & REVIEWS ============================ -->
     <section class="border-t border-gray-200 bg-gray-50">
-        <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 md:py-14 lg:px-8">
-            <!-- Tab switches -->
-            <div class="border-b border-gray-200">
-                <div
-                    class="flex gap-6"
-                    role="tablist"
-                    aria-label="Product details"
-                >
-                    <button
-                        @click="switchTab('desc')"
-                        role="tab"
-                        :aria-selected="activeTab === 'desc'"
-                        class="tab-btn -mb-px border-b-2 px-1 pb-3 text-sm font-semibold transition"
-                        :class="[
-                            activeTab === 'desc'
-                                ? 'border-primary-600 text-primary-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-900',
-                        ]"
-                    >
-                        Description
-                    </button>
-                    <button
-                        @click="switchTab('reviews')"
-                        role="tab"
-                        :aria-selected="activeTab === 'reviews'"
-                        class="tab-btn -mb-px border-b-2 px-1 pb-3 text-sm font-semibold transition"
-                        :class="[
-                            activeTab === 'reviews'
-                                ? 'border-primary-600 text-primary-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-900',
-                        ]"
-                    >
-                        Reviews
-                        <span class="text-gray-400"
-                            >({{ localReviews.length }})</span
-                        >
-                    </button>
+        <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 md:py-14 lg:px-8 space-y-12">
+            <!-- Description section -->
+            <div>
+                <div class="border-b border-gray-200">
+                    <div class="flex">
+                        <div class="-mb-px border-b-2 border-primary-600 px-1 pb-3 text-base font-bold text-primary-600">
+                            Description
+                        </div>
+                    </div>
+                </div>
+                <div class="pt-6">
+                    <div
+                        v-if="product.description"
+                        class="max-w-prose space-y-4 text-sm leading-relaxed text-gray-600 md:text-base"
+                        v-html="product.description"
+                    ></div>
+                    <p v-else class="text-sm text-gray-500">No description available for this product.</p>
                 </div>
             </div>
 
-            <!-- Description panel -->
-            <div v-if="activeTab === 'desc'" role="tabpanel" class="pt-6">
-                <div
-                    v-if="product.description"
-                    class="max-w-prose space-y-4 text-sm leading-relaxed text-gray-600 md:text-base"
-                    v-html="product.description"
-                ></div>
-                <p v-else class="text-sm text-gray-500">No description available for this product.</p>
-            </div>
-
-            <!-- Reviews panel -->
-            <div v-if="activeTab === 'reviews'" role="tabpanel" class="pt-6">
-                <div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
+            <!-- Reviews section -->
+            <div id="reviews-section">
+                <div class="border-b border-gray-200">
+                    <div class="flex">
+                        <div class="-mb-px border-b-2 border-primary-600 px-1 pb-3 text-base font-bold text-primary-600">
+                            Reviews <span class="text-gray-400">({{ localReviews.length }})</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="pt-6">
+                    <div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
                     <!-- Rating summary card -->
                     <div class="lg:col-span-1">
                         <div
@@ -697,6 +849,12 @@ const formatPrice = (price: number) => {
                                             >
                                                 {{ r.name }}
                                                 <span
+                                                    v-if="authUser && r.userId === authUser.id"
+                                                    class="ml-1 rounded bg-violet-100 px-1.5 py-0.5 align-middle text-[10px] font-semibold text-violet-700 shadow-xs"
+                                                >
+                                                    You
+                                                </span>
+                                                <span
                                                     v-if="r.verified"
                                                     class="ml-1 rounded bg-green-50 px-1.5 py-0.5 align-middle text-[10px] font-medium text-green-700 shadow-sm"
                                                 >
@@ -723,9 +881,56 @@ const formatPrice = (price: number) => {
                                             </div>
                                         </div>
                                     </div>
-                                    <span class="text-xs text-gray-400">{{
-                                        r.date
-                                    }}</span>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs text-gray-400 me-1">{{
+                                            r.date
+                                        }}</span>
+                                        <div
+                                            v-if="authUser && r.userId === authUser.id"
+                                            class="flex items-center gap-1"
+                                        >
+                                            <button
+                                                @click="openEditModal(r)"
+                                                type="button"
+                                                title="Edit Review"
+                                                class="rounded-lg p-1 text-gray-400 transition hover:bg-primary-50 hover:text-primary-600 focus:outline-none"
+                                            >
+                                                <svg
+                                                    class="h-4 w-4"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path
+                                                        stroke-linecap="round"
+                                                        stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                                    />
+                                                </svg>
+                                            </button>
+                                            <button
+                                                @click="handleReviewDelete(r.id)"
+                                                type="button"
+                                                title="Delete Review"
+                                                class="rounded-lg p-1 text-gray-400 transition hover:bg-red-50 hover:text-red-600 focus:outline-none"
+                                            >
+                                                <svg
+                                                    class="h-4 w-4"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path
+                                                        stroke-linecap="round"
+                                                        stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                                    />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                                 <p
                                     class="mt-3 text-sm leading-relaxed text-gray-600"
@@ -737,14 +942,14 @@ const formatPrice = (price: number) => {
 
                         <!-- Write a review form -->
                         <div
+                            ref="reviewFormRef"
                             class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
                         >
                             <h3 class="text-lg font-semibold text-gray-900">
                                 Write a review
                             </h3>
                             <p class="mt-1 text-sm text-gray-500">
-                                Your review will appear after approval by our
-                                team.
+                                Share your rating and feedback for this product.
                             </p>
                             <form
                                 @submit.prevent="handleReviewSubmit"
@@ -826,9 +1031,10 @@ const formatPrice = (price: number) => {
                                 </div>
                                 <button
                                     type="submit"
-                                    class="rounded-lg bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700 focus:ring-2 focus:ring-primary-600 focus:outline-none"
+                                    :disabled="isSubmitting"
+                                    class="rounded-lg bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700 focus:ring-2 focus:ring-primary-600 focus:outline-none disabled:opacity-50"
                                 >
-                                    Submit Review
+                                    {{ isSubmitting ? 'Saving...' : 'Submit Review' }}
                                 </button>
                             </form>
                         </div>
@@ -836,6 +1042,7 @@ const formatPrice = (price: number) => {
                 </div>
             </div>
         </div>
+    </div>
     </section>
 
     <!-- ============================ RELATED PRODUCTS ============================ -->
@@ -899,20 +1106,13 @@ const formatPrice = (price: number) => {
                             >
                         </div>
                         <button
-                            @click="
-                                toggleWish(p.name);
-                                showToast(
-                                    hasWish(p.name)
-                                        ? 'Added to wishlist ❤️'
-                                        : 'Removed from wishlist',
-                                );
-                            "
+                            @click="handleRelatedWishlistToggle(p)"
                             type="button"
                             aria-label="Add to wishlist"
-                            :aria-pressed="hasWish(p.name)"
+                            :aria-pressed="hasWish(p.id || p.name)"
                             :class="[
                                 'wish-btn absolute top-2 right-2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-sm transition duration-200 hover:scale-110 hover:bg-white focus:ring-2 focus:ring-primary-600 focus:outline-none active:scale-95 sm:translate-y-1 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100',
-                                hasWish(p.name)
+                                hasWish(p.id || p.name)
                                     ? 'text-red-600'
                                     : 'text-gray-700 hover:text-red-600',
                             ]"
@@ -920,7 +1120,7 @@ const formatPrice = (price: number) => {
                             <svg
                                 class="h-5 w-5"
                                 :fill="
-                                    hasWish(p.name) ? 'currentColor' : 'none'
+                                    hasWish(p.id || p.name) ? 'currentColor' : 'none'
                                 "
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
@@ -1093,6 +1293,103 @@ const formatPrice = (price: number) => {
             </div>
         </div>
     </Transition>
+
+    <!-- Edit Review Modal -->
+    <Teleport to="body">
+        <div
+            v-if="showEditModal"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs transition-opacity"
+            @click.self="closeEditModal"
+        >
+            <div
+                class="w-full max-w-lg overflow-hidden rounded-2xl bg-white p-6 shadow-2xl transition-all"
+            >
+                <div class="flex items-center justify-between border-b border-gray-100 pb-4">
+                    <h3 class="text-lg font-bold text-gray-900">Update Your Review</h3>
+                    <button
+                        @click="closeEditModal"
+                        type="button"
+                        class="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                    >
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <form @submit.prevent="handleUpdateReviewSubmit" class="mt-4 space-y-4">
+                    <!-- Rating selector -->
+                    <div>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700">Your rating</label>
+                        <div class="flex items-center gap-1">
+                            <button
+                                v-for="star in 5"
+                                :key="star"
+                                type="button"
+                                @click="editRating = star"
+                                @mouseenter="editHoverRating = star"
+                                @mouseleave="editHoverRating = 0"
+                                class="p-0.5 focus:outline-none"
+                            >
+                                <svg
+                                    :class="[
+                                        'h-7 w-7 transition',
+                                        star <= (editHoverRating || editRating)
+                                            ? 'text-accent-500 fill-accent-500'
+                                            : 'text-gray-300',
+                                    ]"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                >
+                                    <path
+                                        d="M9.05 2.927c.3-.921 1.6-.921 1.9 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.368 2.447a1 1 0 00-.364 1.118l1.287 3.957c.3.922-.755 1.688-1.539 1.118l-3.366-2.447a1 1 0 00-1.176 0l-3.366 2.447c-.783.57-1.838-.196-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.354 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.951-.69l1.286-3.957z"
+                                    />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Comment textarea -->
+                    <div>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700">Your Feedback</label>
+                        <textarea
+                            v-model="editComment"
+                            rows="4"
+                            class="w-full rounded-xl border border-gray-300 p-3 text-sm focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600"
+                            placeholder="Update your review feedback..."
+                        ></textarea>
+                    </div>
+
+                    <!-- Action buttons -->
+                    <div class="mt-6 flex items-center justify-end gap-3 border-t border-gray-100 pt-4">
+                        <button
+                            @click="closeEditModal"
+                            type="button"
+                            class="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            :disabled="isUpdatingReview"
+                            class="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-primary-700 disabled:opacity-50"
+                        >
+                            <svg
+                                v-if="isUpdatingReview"
+                                class="h-4 w-4 animate-spin"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                            >
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                            <span>{{ isUpdatingReview ? 'Saving...' : 'Update Review' }}</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </Teleport>
 </template>
 
 <style scoped>

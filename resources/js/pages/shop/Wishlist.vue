@@ -1,64 +1,48 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { useCart } from '@/composables/useCart';
 import { useToast } from '@/composables/useToast';
+import { useWishlist, type WishlistItem } from '@/composables/useWishlist';
+
+const props = defineProps<{
+    products?: WishlistItem[];
+}>();
 
 const { addToCart } = useCart();
 const { showToast } = useToast();
+const { wishlist, removeFromWishlist, setWishlist, clearWishlist } = useWishlist();
 
-const wishlistItems = ref([
-    {
-        id: 13,
-        name: 'Smart Fitness Watch Series 6',
-        slug: 'smart-fitness-watch-series-6',
-        price: 4299,
-        img: 'photo-1523275335684-37898b6baf30',
-        rating: 4.6,
-        reviews: 167,
-        inStock: true,
-        category: 'Electronics',
-        tag: 'Best Seller',
-    },
-    {
-        id: 12,
-        name: 'Classic Leather Sneakers',
-        slug: 'classic-leather-sneakers',
-        price: 2999,
-        oldPrice: 3999,
-        img: 'photo-1542291026-7eec264c27ff',
-        rating: 4.7,
-        reviews: 132,
-        inStock: true,
-        category: 'Fashion',
-        tag: '',
-    },
-    {
-        id: 5,
-        name: 'Wireless Earbuds Pro',
-        slug: 'wireless-earbuds-pro',
-        price: 3499,
-        img: 'photo-1590658268037-6bf12165a8df',
-        rating: 4.7,
-        reviews: 142,
-        inStock: true,
-        category: 'Electronics',
-        tag: 'Best Seller',
-    },
-]);
+onMounted(() => {
+    if (props.products && props.products.length > 0) {
+        setWishlist(props.products);
+    }
+});
 
-const formatPrice = (price: number) => {
+const formatPrice = (price?: number) => {
+    if (price === undefined || price === null) return '';
     return '৳ ' + Number(price).toLocaleString('en-BD');
 };
 
-const handleAddToCart = (product: any) => {
-    addToCart(product.name, product.price, product.img, 1);
+const getImageUrl = (img?: string) => {
+    if (!img) return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&auto=format&fit=crop&q=60';
+    if (img.startsWith('http') || img.startsWith('/storage/')) return img;
+    return `https://images.unsplash.com/${img}?w=500&auto=format&fit=crop&q=60`;
+};
+
+const handleAddToCart = (product: WishlistItem) => {
+    addToCart(product.name, product.price || 0, product.img || '', 1);
     showToast('Added to cart successfully!');
 };
 
-const handleRemove = (name: string) => {
-    wishlistItems.value = wishlistItems.value.filter((p) => p.name !== name);
-    showToast('Removed from wishlist');
+const handleRemove = (product: WishlistItem) => {
+    removeFromWishlist(product.id || product.name);
+    showToast(`Removed from wishlist: ${product.name}`);
+};
+
+const handleClear = () => {
+    clearWishlist();
+    showToast('Wishlist cleared');
 };
 </script>
 
@@ -120,8 +104,7 @@ const handleRemove = (name: string) => {
                                     clip-rule="evenodd"
                                 />
                             </svg>
-                            <span
-                                class="text-sm font-medium text-gray-800"
+                            <span class="text-sm font-medium text-gray-800"
                                 >Wishlist</span
                             >
                         </div>
@@ -130,7 +113,9 @@ const handleRemove = (name: string) => {
             </nav>
 
             <!-- Page Title -->
-            <div class="mb-8 flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-4 border-b border-gray-200 pb-5">
+            <div
+                class="mb-8 flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-4 border-b border-gray-200 pb-5"
+            >
                 <div>
                     <h1 class="text-3xl font-extrabold tracking-tight text-gray-900">
                         My Wishlist
@@ -139,28 +124,42 @@ const handleRemove = (name: string) => {
                         Manage your favorite items and add them to your cart.
                     </p>
                 </div>
-                <span class="self-start sm:self-auto rounded-full bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-600">
-                    {{ wishlistItems.length }} {{ wishlistItems.length === 1 ? 'item' : 'items' }}
-                </span>
+                <div class="flex items-center gap-3">
+                    <button
+                        v-if="wishlist.length > 0"
+                        @click="handleClear"
+                        type="button"
+                        class="text-xs font-semibold text-gray-500 hover:text-red-600 transition"
+                    >
+                        Clear All
+                    </button>
+                    <span
+                        class="rounded-full bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-600"
+                    >
+                        {{ wishlist.length }} {{ wishlist.length === 1 ? 'item' : 'items' }}
+                    </span>
+                </div>
             </div>
 
             <!-- Wishlist Grid -->
-            <div v-if="wishlistItems.length > 0">
-                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            <div v-if="wishlist.length > 0">
+                <div
+                    class="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+                >
                     <article
-                        v-for="p in wishlistItems"
-                        :key="p.id"
+                        v-for="p in wishlist"
+                        :key="p.id || p.name"
                         class="group relative flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition hover:shadow-lg"
                     >
                         <!-- Image section -->
                         <div class="relative aspect-square overflow-hidden bg-gray-100">
                             <img
-                                :src="`https://images.unsplash.com/${p.img}?w=500&auto=format&fit=crop&q=60`"
+                                :src="getImageUrl(p.img)"
                                 :alt="p.name"
                                 class="h-full w-full object-cover object-center transition duration-500 group-hover:scale-105"
                                 loading="lazy"
                             />
-                            
+
                             <!-- Badges -->
                             <div v-if="p.tag" class="absolute top-3 left-3 z-10">
                                 <span
@@ -172,7 +171,7 @@ const handleRemove = (name: string) => {
 
                             <!-- Remove from wishlist -->
                             <button
-                                @click="handleRemove(p.name)"
+                                @click="handleRemove(p)"
                                 type="button"
                                 aria-label="Remove from wishlist"
                                 class="absolute top-3 right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white text-gray-400 shadow-sm transition hover:bg-red-50 hover:text-red-500 focus:outline-none"
@@ -195,23 +194,31 @@ const handleRemove = (name: string) => {
 
                         <!-- Info details -->
                         <div class="flex flex-1 flex-col p-4">
-                            <span class="text-xs font-semibold tracking-wider text-gray-400 uppercase">
+                            <span
+                                v-if="p.category"
+                                class="text-xs font-semibold tracking-wider text-gray-400 uppercase"
+                            >
                                 {{ p.category }}
                             </span>
-                            <h3 class="mt-1 text-sm font-semibold text-gray-900 line-clamp-2 min-h-[40px]">
-                                <Link :href="`/product-details/${p.slug}`" class="hover:text-primary-600">
+                            <h3
+                                class="mt-1 text-sm font-semibold text-gray-900 line-clamp-2 min-h-[40px]"
+                            >
+                                <Link
+                                    :href="p.slug ? `/product-details/${p.slug}` : '/shop'"
+                                    class="hover:text-primary-600"
+                                >
                                     {{ p.name }}
                                 </Link>
                             </h3>
 
                             <!-- Rating -->
-                            <div class="mt-2 flex items-center gap-1">
+                            <div v-if="p.rating" class="mt-2 flex items-center gap-1">
                                 <div class="flex items-center text-amber-400">
                                     <svg
                                         v-for="star in 5"
                                         :key="star"
                                         class="h-3.5 w-3.5"
-                                        :class="star <= Math.round(p.rating) ? 'fill-current' : 'stroke-current fill-none'"
+                                        :class="star <= Math.round(p.rating || 5) ? 'fill-current' : 'stroke-current fill-none'"
                                         viewBox="0 0 24 24"
                                         stroke="currentColor"
                                         stroke-width="2"
@@ -223,14 +230,17 @@ const handleRemove = (name: string) => {
                                         />
                                     </svg>
                                 </div>
-                                <span class="text-xs text-gray-500 font-medium">({{ p.reviews }})</span>
+                                <span class="text-xs text-gray-500 font-medium">({{ p.reviews || 0 }})</span>
                             </div>
 
                             <div class="mt-3 flex items-center gap-2">
                                 <span class="text-base font-semibold text-primary-600">
                                     {{ formatPrice(p.price) }}
                                 </span>
-                                <span v-if="p.oldPrice" class="text-xs text-gray-400 line-through">
+                                <span
+                                    v-if="p.oldPrice"
+                                    class="text-xs text-gray-400 line-through"
+                                >
                                     {{ formatPrice(p.oldPrice) }}
                                 </span>
                             </div>
@@ -238,7 +248,7 @@ const handleRemove = (name: string) => {
                             <!-- Cart add action -->
                             <div class="mt-4 pt-3 border-t border-gray-100">
                                 <button
-                                    v-if="p.inStock"
+                                    v-if="p.inStock !== false"
                                     @click="handleAddToCart(p)"
                                     type="button"
                                     class="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-primary-600 px-3 py-2 text-xs font-semibold text-primary-600 transition hover:bg-primary-50 focus:ring-2 focus:ring-primary-600 focus:outline-none"
@@ -273,8 +283,13 @@ const handleRemove = (name: string) => {
             </div>
 
             <!-- Empty State -->
-            <div v-else class="rounded-2xl border border-dashed border-gray-300 bg-white py-16 px-4 text-center">
-                <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-500 animate-pulse">
+            <div
+                v-else
+                class="rounded-2xl border border-dashed border-gray-300 bg-white py-16 px-4 text-center"
+            >
+                <div
+                    class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-500 animate-pulse"
+                >
                     <svg
                         class="h-8 w-8"
                         fill="none"
