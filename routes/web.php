@@ -23,7 +23,8 @@ Route::get('product-details/{slug}', ProductDetailsController::class)->name('pro
 Route::get('shop', ShopController::class)->name('shop');
 Route::get('cart', CartController::class)->name('cart');
 Route::get('checkout', CheckoutController::class)->name('checkout');
-Route::get('wishlist', WishlistController::class)->name('wishlist');
+Route::get('wishlist', [WishlistController::class, 'index'])->name('wishlist');
+Route::post('wishlist/toggle/{product}', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
 Route::get('help-support', HelpSupportController::class)->name('help.support');
 
 Route::middleware(['auth', 'verified'])->group(function () {

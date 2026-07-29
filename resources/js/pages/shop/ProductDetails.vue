@@ -149,12 +149,28 @@ const handleQtyBlur = () => {
 
 // Wishlist interaction
 const handleWishlistToggle = () => {
-    const isAdded = toggleWish(props.product.name);
+    const isAdded = toggleWish({
+        id: props.product.id,
+        name: props.product.name,
+        slug: props.product.slug,
+        price: props.product.price,
+        oldPrice: props.product.oldPrice,
+        img: primaryImagePath.value,
+        rating: props.product.rating,
+        reviews: props.product.reviewCount,
+        inStock: props.product.inStock,
+        category: props.product.category,
+    });
     if (isAdded) {
         showToast('Added to wishlist ❤️');
     } else {
         showToast('Removed from wishlist');
     }
+};
+
+const handleRelatedWishlistToggle = (product: RelatedProduct) => {
+    const isAdded = toggleWish(product);
+    showToast(isAdded ? 'Added to wishlist ❤️' : 'Removed from wishlist');
 };
 
 // Cart interactions
@@ -470,10 +486,10 @@ const formatPrice = (price: number) => {
                         @click="handleWishlistToggle"
                         type="button"
                         aria-label="Add to wishlist"
-                        :aria-pressed="hasWish(product.name)"
+                        :aria-pressed="hasWish(product.id || product.name)"
                         :class="[
                             'inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border transition focus:ring-2 focus:ring-primary-600 focus:outline-none',
-                            hasWish(product.name)
+                            hasWish(product.id || product.name)
                                 ? 'border-red-600 text-red-600'
                                 : 'border-gray-300 text-gray-600 hover:border-red-300 hover:text-red-600',
                         ]"
@@ -481,7 +497,7 @@ const formatPrice = (price: number) => {
                         <svg
                             class="h-5 w-5"
                             :fill="
-                                hasWish(product.name) ? 'currentColor' : 'none'
+                                hasWish(product.id || product.name) ? 'currentColor' : 'none'
                             "
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -899,20 +915,13 @@ const formatPrice = (price: number) => {
                             >
                         </div>
                         <button
-                            @click="
-                                toggleWish(p.name);
-                                showToast(
-                                    hasWish(p.name)
-                                        ? 'Added to wishlist ❤️'
-                                        : 'Removed from wishlist',
-                                );
-                            "
+                            @click="handleRelatedWishlistToggle(p)"
                             type="button"
                             aria-label="Add to wishlist"
-                            :aria-pressed="hasWish(p.name)"
+                            :aria-pressed="hasWish(p.id || p.name)"
                             :class="[
                                 'wish-btn absolute top-2 right-2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-sm transition duration-200 hover:scale-110 hover:bg-white focus:ring-2 focus:ring-primary-600 focus:outline-none active:scale-95 sm:translate-y-1 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100',
-                                hasWish(p.name)
+                                hasWish(p.id || p.name)
                                     ? 'text-red-600'
                                     : 'text-gray-700 hover:text-red-600',
                             ]"
@@ -920,7 +929,7 @@ const formatPrice = (price: number) => {
                             <svg
                                 class="h-5 w-5"
                                 :fill="
-                                    hasWish(p.name) ? 'currentColor' : 'none'
+                                    hasWish(p.id || p.name) ? 'currentColor' : 'none'
                                 "
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"

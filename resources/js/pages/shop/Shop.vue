@@ -207,9 +207,9 @@ const imageUrl = (path: string) => {
 };
 
 // Cart/wishlist handlers
-const handleWishlistToggle = (productName: string) => {
-    const isAdded = toggleWish(productName);
-    showToast(isAdded ? `Added to wishlist: ${productName} ❤️` : `Removed from wishlist: ${productName}`);
+const handleWishlistToggle = (product: Product) => {
+    const isAdded = toggleWish(product);
+    showToast(isAdded ? `Added to wishlist: ${product.name} ❤️` : `Removed from wishlist: ${product.name}`);
 };
 
 const handleAddToCart = (product: Product) => {
@@ -782,13 +782,13 @@ const formatPrice = (price: number) => {
                                 >
                             </div>
                             <button
-                                @click="handleWishlistToggle(p.name)"
+                                @click="handleWishlistToggle(p)"
                                 type="button"
                                 aria-label="Add to wishlist"
-                                :aria-pressed="hasWish(p.name)"
+                                :aria-pressed="hasWish(p.id || p.name)"
                                 :class="[
                                     'wish-btn absolute top-2 right-2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-sm transition duration-200 hover:scale-110 hover:bg-white focus:ring-2 focus:ring-primary-600 focus:outline-none active:scale-95 sm:translate-y-1 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100',
-                                    hasWish(p.name)
+                                    hasWish(p.id || p.name)
                                         ? 'text-red-600'
                                         : 'text-gray-700 hover:text-red-600',
                                 ]"
@@ -796,7 +796,7 @@ const formatPrice = (price: number) => {
                                 <svg
                                     class="h-5 w-5"
                                     :fill="
-                                        hasWish(p.name)
+                                        hasWish(p.id || p.name)
                                             ? 'currentColor'
                                             : 'none'
                                     "
