@@ -33,12 +33,24 @@ class CategoryManagementController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:150',
             'description' => 'nullable|string',
-            'image' => 'nullable|string|max:255',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
+            'image_url' => 'nullable|string|max:500',
             'sort_order' => 'integer|min:0',
             'is_active' => 'boolean',
         ]);
 
         $validated['slug'] = Str::slug($validated['name']);
+
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('categories', 'public');
+            $imagePath = '/storage/'.$path;
+        } elseif ($request->filled('image_url')) {
+            $imagePath = $request->image_url;
+        }
+
+        $validated['image'] = $imagePath;
+        unset($validated['image_url']);
 
         Category::create($validated);
 
@@ -50,7 +62,8 @@ class CategoryManagementController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:150',
             'description' => 'nullable|string',
-            'image' => 'nullable|string|max:255',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
+            'image_url' => 'nullable|string|max:500',
             'sort_order' => 'integer|min:0',
             'is_active' => 'boolean',
         ]);
@@ -58,6 +71,15 @@ class CategoryManagementController extends Controller
         if ($category->name !== $validated['name']) {
             $validated['slug'] = Str::slug($validated['name']);
         }
+
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('categories', 'public');
+            $validated['image'] = '/storage/'.$path;
+        } elseif ($request->filled('image_url')) {
+            $validated['image'] = $request->image_url;
+        }
+
+        unset($validated['image_url']);
 
         $category->update($validated);
 
