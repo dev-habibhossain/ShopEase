@@ -58,6 +58,12 @@ const closeMobileMenu = () => {
 };
 
 const currentYear = new Date().getFullYear();
+
+const getItemImg = (img?: string) => {
+    if (!img) return 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=120&q=70';
+    if (img.startsWith('http') || img.startsWith('/storage/')) return img;
+    return `https://images.unsplash.com/${img}?auto=format&fit=crop&w=120&q=70`;
+};
 </script>
 
 <template>
@@ -826,7 +832,7 @@ const currentYear = new Date().getFullYear();
                             class="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-100"
                         >
                             <img
-                                :src="`https://images.unsplash.com/${item.img}?auto=format&fit=crop&w=120&q=70`"
+                                :src="getItemImg(item.img)"
                                 :alt="item.name"
                                 class="h-full w-full object-cover"
                             />

@@ -119,17 +119,27 @@ const productImageUrl = (img: string) => {
     if (!img) {
         return 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=600&q=70';
     }
-    if (img.startsWith('http')) {
+    if (img.startsWith('http') || img.startsWith('/storage/')) {
         return img;
     }
     return `https://images.unsplash.com/${img}?auto=format&fit=crop&w=600&q=70`;
+};
+
+const categoryImageUrl = (img: string) => {
+    if (!img) {
+        return 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=400&q=70';
+    }
+    if (img.startsWith('http') || img.startsWith('/storage/')) {
+        return img;
+    }
+    return `https://images.unsplash.com/${img}?auto=format&fit=crop&w=400&q=70`;
 };
 
 const heroImageUrl = (img: string) => {
     if (!img) {
         return '';
     }
-    if (img.startsWith('http')) {
+    if (img.startsWith('http') || img.startsWith('/storage/')) {
         return img;
     }
     return `https://images.unsplash.com/${img}?auto=format&fit=crop&w=1920&q=70`;
@@ -461,7 +471,7 @@ const formatPrice = (price: number) => {
                     >
                         <img
                             v-if="cat.image"
-                            :src="cat.image.startsWith('http') ? cat.image : `https://images.unsplash.com/${cat.image}?auto=format&fit=crop&w=400&q=70`"
+                            :src="categoryImageUrl(cat.image)"
                             :alt="cat.name"
                             loading="lazy"
                             class="h-full w-full object-cover transition duration-500 ease-out group-hover:scale-110"

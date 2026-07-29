@@ -82,7 +82,7 @@ const formatPrice = (price: number) => {
 
 const getItemImg = (img?: string | null) => {
     if (!img) return 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=120&q=70';
-    if (img.startsWith('http')) return img;
+    if (img.startsWith('http') || img.startsWith('/storage/')) return img;
     return `https://images.unsplash.com/${img}?auto=format&fit=crop&w=120&q=70`;
 };
 

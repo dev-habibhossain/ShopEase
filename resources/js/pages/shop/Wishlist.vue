@@ -26,7 +26,7 @@ const formatPrice = (price?: number) => {
 
 const getImageUrl = (img?: string) => {
     if (!img) return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&auto=format&fit=crop&q=60';
-    if (img.startsWith('http')) return img;
+    if (img.startsWith('http') || img.startsWith('/storage/')) return img;
     return `https://images.unsplash.com/${img}?w=500&auto=format&fit=crop&q=60`;
 };
 

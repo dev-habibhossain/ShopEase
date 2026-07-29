@@ -86,7 +86,7 @@ const imageUrl = (path: string, size: number = 600) => {
     if (!path) {
         return `https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=${size}&q=75`;
     }
-    if (path.startsWith('http')) {
+    if (path.startsWith('http') || path.startsWith('/storage/')) {
         return path;
     }
     return `https://images.unsplash.com/${path}?auto=format&fit=crop&w=${size}&q=75`;

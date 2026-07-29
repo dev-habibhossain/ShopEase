@@ -38,6 +38,12 @@ const formatPrice = (price: number) => {
     return '৳ ' + Number(price).toLocaleString('en-BD');
 };
 
+const getItemImg = (img: string) => {
+    if (!img) return 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=160&q=70';
+    if (img.startsWith('http') || img.startsWith('/storage/')) return img;
+    return `https://images.unsplash.com/${img}?auto=format&fit=crop&w=160&q=70`;
+};
+
 const handleApplyCoupon = (codeToApply?: string) => {
     const code = codeToApply || couponInput.value;
     const res = applyCoupon(code);
@@ -170,7 +176,7 @@ const handleRemoveCoupon = () => {
                                 <div class="flex items-center gap-4 min-w-0 flex-1">
                                     <div class="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-gray-100">
                                         <img
-                                            :src="item.img.startsWith('http') ? item.img : `https://images.unsplash.com/${item.img}?auto=format&fit=crop&w=160&q=70`"
+                                            :src="getItemImg(item.img)"
                                             :alt="item.name"
                                             class="h-full w-full object-cover"
                                         />
