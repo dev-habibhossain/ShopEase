@@ -48,6 +48,28 @@ class User extends Authenticatable
         ];
     }
 
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'super_admin';
+    }
+
+    public function isAdmin(): bool
+    {
+        return in_array($this->role, ['admin', 'super_admin'], true);
+    }
+
+    public function isCustomer(): bool
+    {
+        return $this->role === 'customer';
+    }
+
+    public function hasRole(string|array $roles): bool
+    {
+        $rolesArray = is_array($roles) ? $roles : [$roles];
+
+        return in_array($this->role, $rolesArray, true);
+    }
+
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);

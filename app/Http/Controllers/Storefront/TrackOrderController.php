@@ -16,10 +16,18 @@ class TrackOrderController extends Controller
      */
     public function __invoke(Request $request): InertiaResponse
     {
-        $orderNumber = trim((string) $request->query('order_number', ''));
-        $searchQuery = trim((string) $request->query('search', ''));
+        $rawQuery = trim((string) (
+            $request->query('order_number')
+            ?? $request->query('order_id')
+            ?? $request->query('order')
+            ?? $request->query('search')
+            ?? $request->query('phone')
+            ?? $request->query('email')
+            ?? ''
+        ));
 
-        $query = $orderNumber !== '' ? $orderNumber : $searchQuery;
+        // Strip leading '#' if present (e.g. #SE-2026-123456)
+        $query = ltrim($rawQuery, '#');
 
         $order = null;
         $errorMessage = null;
@@ -35,21 +43,32 @@ class TrackOrderController extends Controller
 
         if ($query !== '') {
             $order = Order::with(['items.product', 'user'])
-                ->where('order_number', $query)
-                ->orWhere(function ($q) use ($query) {
-                    $q->where('phone', $query)
+                ->where(function ($q) use ($query) {
+                    $q->where('order_number', $query)
+                        ->orWhere('phone', $query)
                         ->orWhere('email', $query);
                 })
                 ->latest()
                 ->first();
 
             if (! $order) {
-                $errorMessage = "No order found matching '{$query}'. Please check your Order Number or Phone/Email.";
+                $errorMessage = "No order found matching '{$rawQuery}'. Please check your Order Number or Phone/Email.";
+            }
+        } elseif ($request->session()->has('last_placed_order')) {
+            $lastOrderNum = $request->session()->get('last_placed_order');
+            $order = Order::with(['items.product', 'user'])
+                ->where('order_number', $lastOrderNum)
+                ->first();
+            if ($order) {
+                $query = $lastOrderNum;
             }
         } elseif (Auth::check() && $userRecentOrders->isNotEmpty()) {
             // Default to latest order for authenticated users
             $latestOrder = $userRecentOrders->first();
             $order = Order::with(['items.product', 'user'])->find($latestOrder->id);
+            if ($order) {
+                $query = $order->order_number;
+            }
         }
 
         return Inertia::render('shop/TrackOrder', [
@@ -76,7 +95,8 @@ class TrackOrderController extends Controller
                     $product = $item->product;
                     $image = null;
                     if ($product) {
-                        $image = $product->primary_image ?? ($product->images[0] ?? null);
+                        $primaryImg = $product->primary_image ?? ($product->images[0] ?? null);
+                        $image = is_object($primaryImg) ? ($primaryImg->image_path ?? null) : $primaryImg;
                     }
 
                     return [

@@ -97,6 +97,8 @@ class StripeCheckoutController extends Controller
             'placed_at' => now(),
         ]);
 
+        session(['last_placed_order' => $order->order_number]);
+
         foreach ($cart as $item) {
             OrderItem::create([
                 'order_id' => $order->id,

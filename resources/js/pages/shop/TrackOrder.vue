@@ -53,18 +53,22 @@ const page = usePage();
 const searchInput = ref(props.searchedQuery || '');
 const copiedNotice = ref(false);
 
-watch(() => props.searchedQuery, (newVal) => {
-    if (newVal) searchInput.value = newVal;
-});
+watch(
+    () => props.searchedQuery || props.order?.order_number,
+    (newVal) => {
+        if (newVal) searchInput.value = newVal;
+    },
+    { immediate: true }
+);
 
 const handleSearch = () => {
     if (!searchInput.value.trim()) return;
-    router.get('/track-order', { search: searchInput.value.trim() }, { preserveState: true });
+    router.get('/track-order', { search: searchInput.value.trim() }, { preserveState: false });
 };
 
 const selectRecentOrder = (orderNum: string) => {
     searchInput.value = orderNum;
-    router.get('/track-order', { order_number: orderNum }, { preserveState: true });
+    router.get('/track-order', { order_number: orderNum }, { preserveState: false });
 };
 
 const copyOrderNumber = () => {
@@ -80,10 +84,16 @@ const formatPrice = (price: number) => {
     return '৳ ' + Number(price).toLocaleString('en-BD');
 };
 
-const getItemImg = (img?: string | null) => {
-    if (!img) return 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=120&q=70';
-    if (img.startsWith('http') || img.startsWith('/storage/')) return img;
-    return `https://images.unsplash.com/${img}?auto=format&fit=crop&w=120&q=70`;
+const getItemImg = (img?: string | object | null) => {
+    let imgPath = '';
+    if (typeof img === 'object' && img !== null) {
+        imgPath = (img as any).image_path || (img as any).url || '';
+    } else if (typeof img === 'string') {
+        imgPath = img;
+    }
+    if (!imgPath) return 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=120&q=70';
+    if (imgPath.startsWith('http') || imgPath.startsWith('/storage/')) return imgPath;
+    return `https://images.unsplash.com/${imgPath}?auto=format&fit=crop&w=120&q=70`;
 };
 
 // Status progression steps calculation

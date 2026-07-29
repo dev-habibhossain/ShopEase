@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -15,10 +16,43 @@ class DashboardOverviewController extends Controller
 {
     public function __invoke(Request $request): Response
     {
+        /** @var User $user */
+        $user = Auth::user();
+
+        if ($user && $user->isCustomer()) {
+            $customerOrders = $user->orders()->latest()->get();
+            $totalOrders = $customerOrders->count();
+            $totalSpent = $user->orders()->where('payment_status', 'paid')->sum('total');
+            $wishlistCount = $user->wishlists()->count();
+
+            return Inertia::render('Dashboard/Overview', [
+                'userRole' => 'customer',
+                'stats' => [
+                    'total_orders' => number_format($totalOrders),
+                    'total_spent' => number_format($totalSpent, 2),
+                    'wishlist_count' => number_format($wishlistCount),
+                ],
+                'recentOrders' => $customerOrders->take(5)->map(fn ($o) => [
+                    'id' => $o->id,
+                    'order_number' => $o->order_number,
+                    'customer_name' => $o->customer_name,
+                    'district' => $o->district,
+                    'total' => $o->total,
+                    'payment_method' => $o->payment_method === 'cod' ? 'COD' : 'Stripe',
+                    'payment_status' => ucfirst($o->payment_status),
+                    'status' => ucfirst($o->status),
+                    'created_at' => $o->created_at ? $o->created_at->format('M d, Y') : null,
+                ]),
+                'topProducts' => [],
+                'lowStockItems' => [],
+                'monthlySales' => [],
+            ]);
+        }
+
         $totalRevenue = Order::where('payment_status', 'paid')->sum('total');
         $totalOrders = Order::count();
         $activeProductsCount = Product::where('is_active', true)->count();
-        $totalCustomers = User::count();
+        $totalCustomers = User::where('role', 'customer')->count();
 
         $recentOrders = Order::latest()
             ->take(5)
@@ -53,6 +87,7 @@ class DashboardOverviewController extends Controller
         }
 
         return Inertia::render('Dashboard/Overview', [
+            'userRole' => $user ? $user->role : 'admin',
             'stats' => [
                 'total_revenue' => number_format($totalRevenue, 2),
                 'total_orders' => number_format($totalOrders),
