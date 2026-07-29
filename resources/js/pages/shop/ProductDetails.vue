@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { Head, Link, usePage, router } from '@inertiajs/vue3';
 import { useCart } from '@/composables/useCart';
 import { useWishlist } from '@/composables/useWishlist';
 import { useToast } from '@/composables/useToast';
@@ -28,11 +28,18 @@ interface ProductProp {
 }
 
 interface Review {
+    id?: number;
     name: string;
     rating: number;
     date: string;
     verified: boolean;
     text: string;
+}
+
+interface UserReview {
+    id: number;
+    rating: number;
+    comment: string;
 }
 
 interface Breakdown {
@@ -56,6 +63,7 @@ interface RelatedProduct {
 const props = defineProps<{
     product: ProductProp;
     reviews: Review[];
+    userReview?: UserReview | null;
     breakdown: Breakdown[];
     relatedProducts: RelatedProduct[];
 }>();
@@ -121,10 +129,32 @@ onUnmounted(() => {
 });
 
 // Review Form states
-const reviewName = ref('');
-const reviewText = ref('');
-const selectedRating = ref(0);
+const page = usePage();
+const authUser = computed(() => (page.props.auth as any)?.user);
+const reviewName = ref(authUser.value?.name || 'Anonymous');
+const reviewText = ref(props.userReview?.comment || '');
+const selectedRating = ref(props.userReview?.rating || 0);
 const hoverRating = ref(0);
+const isSubmitting = ref(false);
+
+const hasUserReview = computed(() => Boolean(props.userReview));
+
+watch(
+    () => props.userReview,
+    (newReview) => {
+        if (newReview) {
+            selectedRating.value = newReview.rating;
+            reviewText.value = newReview.comment;
+        }
+    },
+    { immediate: true }
+);
+
+watch(authUser, (user) => {
+    if (user?.name && (!reviewName.value || reviewName.value === 'Anonymous')) {
+        reviewName.value = user.name;
+    }
+});
 
 // Quantity modifiers
 const incrementQty = () => {
@@ -200,35 +230,39 @@ const selectRating = (rating: number) => {
     selectedRating.value = rating;
 };
 
-// Review Submission (client-side only, adds to localReviews)
+// Review Submission via Inertia POST
 const handleReviewSubmit = () => {
     if (selectedRating.value === 0) {
         showToast('Please select a star rating');
         return;
     }
 
-    const today = new Date();
-    const formattedDate = today.toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-    });
+    if (!reviewText.value.trim()) {
+        showToast('Please write a review comment');
+        return;
+    }
 
-    localReviews.value.unshift({
-        name: reviewName.value || 'Anonymous',
-        rating: selectedRating.value,
-        date: formattedDate,
-        verified: false,
-        text: reviewText.value,
-    });
+    isSubmitting.value = true;
 
-    showToast('Thanks! Your review is pending approval.');
-
-    // Reset fields
-    reviewName.value = '';
-    reviewText.value = '';
-    selectedRating.value = 0;
-    hoverRating.value = 0;
+    router.post(
+        `/product-details/${props.product.slug}/reviews`,
+        {
+            rating: selectedRating.value,
+            comment: reviewText.value,
+            name: reviewName.value,
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                showToast(hasUserReview.value ? 'Review updated successfully!' : 'Thank you! Your review has been submitted.');
+                isSubmitting.value = false;
+            },
+            onError: () => {
+                showToast('Failed to save review. Please try again.');
+                isSubmitting.value = false;
+            },
+        }
+    );
 };
 
 // Helpers
@@ -756,11 +790,10 @@ const formatPrice = (price: number) => {
                             class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
                         >
                             <h3 class="text-lg font-semibold text-gray-900">
-                                Write a review
+                                {{ hasUserReview ? 'Edit Your Review' : 'Write a review' }}
                             </h3>
                             <p class="mt-1 text-sm text-gray-500">
-                                Your review will appear after approval by our
-                                team.
+                                Share your rating and feedback for this product.
                             </p>
                             <form
                                 @submit.prevent="handleReviewSubmit"
@@ -842,9 +875,10 @@ const formatPrice = (price: number) => {
                                 </div>
                                 <button
                                     type="submit"
-                                    class="rounded-lg bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700 focus:ring-2 focus:ring-primary-600 focus:outline-none"
+                                    :disabled="isSubmitting"
+                                    class="rounded-lg bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700 focus:ring-2 focus:ring-primary-600 focus:outline-none disabled:opacity-50"
                                 >
-                                    Submit Review
+                                    {{ isSubmitting ? 'Saving...' : (hasUserReview ? 'Update Review' : 'Submit Review') }}
                                 </button>
                             </form>
                         </div>

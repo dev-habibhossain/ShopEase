@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Storefront;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Models\Review;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -12,9 +14,9 @@ use Symfony\Component\HttpFoundation\Response as HttpResponse;
 class ProductDetailsController extends Controller
 {
     /**
-     * Handle the incoming request.
+     * Display product details.
      */
-    public function __invoke(Request $request, string $slug): Response
+    public function show(Request $request, string $slug): Response
     {
         /** @var Product|null $product */
         $product = Product::with([
@@ -45,12 +47,29 @@ class ProductDetailsController extends Controller
 
         // Shape reviews for the frontend
         $reviews = $product->reviews->map(fn ($r) => [
+            'id' => $r->id,
             'name' => $r->user?->name ?? 'Anonymous',
             'rating' => $r->rating,
             'date' => $r->created_at->format('j M Y'),
             'verified' => $r->order_id !== null,
             'text' => $r->comment ?? '',
         ]);
+
+        // Check for existing review from current user
+        $user = $request->user();
+        $userReview = null;
+        if ($user) {
+            $existing = Review::where('user_id', $user->id)
+                ->where('product_id', $product->id)
+                ->first();
+            if ($existing) {
+                $userReview = [
+                    'id' => $existing->id,
+                    'rating' => $existing->rating,
+                    'comment' => $existing->comment ?? '',
+                ];
+            }
+        }
 
         // Shape images
         $images = $product->images->map(fn ($img) => [
@@ -99,8 +118,58 @@ class ProductDetailsController extends Controller
                 'images' => $images,
             ],
             'reviews' => $reviews,
+            'userReview' => $userReview,
             'breakdown' => $breakdown,
             'relatedProducts' => $relatedProducts,
         ]);
+    }
+
+    /**
+     * Store or update a review.
+     */
+    public function storeReview(Request $request, string $slug): RedirectResponse
+    {
+        /** @var Product $product */
+        $product = Product::where('slug', $slug)->firstOrFail();
+
+        $validated = $request->validate([
+            'rating' => 'required|integer|min:1|max:5',
+            'comment' => 'required|string|max:1000',
+            'name' => 'nullable|string|max:100',
+        ]);
+
+        $user = $request->user();
+
+        if ($user) {
+            if (! empty($validated['name']) && $validated['name'] !== $user->name) {
+                $user->update(['name' => $validated['name']]);
+            }
+
+            Review::updateOrCreate(
+                [
+                    'product_id' => $product->id,
+                    'user_id' => $user->id,
+                ],
+                [
+                    'rating' => $validated['rating'],
+                    'comment' => $validated['comment'],
+                    'is_approved' => true,
+                    'approved_at' => now(),
+                ]
+            );
+            $message = 'Your review has been saved successfully!';
+        } else {
+            Review::create([
+                'product_id' => $product->id,
+                'user_id' => null,
+                'rating' => $validated['rating'],
+                'comment' => $validated['comment'],
+                'is_approved' => true,
+                'approved_at' => now(),
+            ]);
+            $message = 'Thank you! Your review has been submitted.';
+        }
+
+        return redirect()->back()->with('success', $message);
     }
 }
